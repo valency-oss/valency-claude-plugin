@@ -1,0 +1,93 @@
+---
+name: profile
+description: "Build a comprehensive researcher profile — publication history, research domains, top papers, and collaborators. Usage: /valency:profile <author_name>"
+---
+
+# Researcher Profile
+
+Build a comprehensive profile for the given researcher.
+
+## Input
+
+The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walker").
+
+## Tool Chain
+
+Execute these steps in order. Use the full MCP tool names shown below.
+
+### Step 1: Get author profile
+
+Call `mcp__claude_ai_Valency_Systems_Inc__get_author_profile` with:
+- `author`: the author name provided by the user
+
+This returns summary stats including top categories, publication timeline, co-author count, and total papers.
+
+If no results are found, tell the user the author was not found and suggest checking the spelling or trying a partial name. Stop here.
+
+### Step 2: Get full publication list
+
+Call `mcp__claude_ai_Valency_Systems_Inc__search_by_author` with:
+- `author`: the author name
+- `limit`: 10
+- `sort_by`: "citations"
+- `strict_mode`: "fuzzy"
+
+This returns the author's top papers sorted by citation count.
+
+### Step 3: Get research domain distribution
+
+Call `mcp__claude_ai_Valency_Systems_Inc__batch_author_categories` with:
+- `authors`: an array containing the author name
+- `max_categories`: 10
+
+This returns the category distribution for the author's publications.
+
+### Step 4: Get top collaborators
+
+Call `mcp__claude_ai_Valency_Systems_Inc__find_coauthors` with:
+- `author`: the author name
+- `limit`: 10
+
+This returns the author's most frequent collaborators with co-publication counts.
+
+## Output Format
+
+Present the results in this structure:
+
+### Summary
+
+A brief block with:
+- **Name**: full name as it appears in the corpus
+- **Total papers**: count from Step 1
+- **Active years**: first paper year to last paper year
+- **Primary domains**: top 3 categories from Step 3
+
+### Research Domains
+
+A table of the top 5 categories from Step 3:
+
+| Category | Papers |
+|----------|--------|
+| cs.LG    | 42     |
+| ...      | ...    |
+
+### Top Papers
+
+A numbered list of up to 10 papers from Step 2. For each paper show:
+- Title (with paper ID)
+- Year
+- Categories
+
+### Top Collaborators
+
+A table of up to 5 collaborators from Step 4:
+
+| Collaborator | Co-authored papers |
+|--------------|-------------------|
+| Name         | 15                |
+| ...          | ...               |
+
+### Suggested Follow-ups
+
+- `/valency:network <author_name>` — map their collaboration network
+- `/valency:similar <paper_id>` — find papers similar to their top work (use the ID of their most-cited paper)
