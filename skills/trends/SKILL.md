@@ -20,35 +20,35 @@ The user provides one of:
 
 **If the input is a single category code:**
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_publication_trends` with:
+Call `get_publication_trends` with:
 - `category`: the category code
 - `granularity`: "year"
 - `format`: "compact"
 
 **If the input is a single keyword/phrase:**
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_keyword_trends` with:
+Call `get_keyword_trends` with:
 - `query`: the keyword
 - `granularity`: "year"
 - `format`: "compact"
 
 **If the input contains multiple categories** (comma-separated or "vs"):
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_publication_trends_batch` with:
+Call `get_publication_trends_batch` with:
 - `categories`: array of the category codes
 - `granularity`: "year"
 - `format`: "compact"
 
 **If the input contains multiple keywords** (comma-separated or "vs"):
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_keyword_trends` once per keyword with:
+Call `get_keyword_trends` once per keyword with:
 - `query`: each keyword
 - `granularity`: "year"
 - `format`: "compact"
 
 ### Step 2: Get recent representative papers
 
-Call `mcp__claude_ai_Valency_Systems_Inc__search_by_abstract` with:
+Call `search_by_abstract` with:
 - `query`: the keyword or category name (use the human-readable name for categories, e.g., "machine learning" for cs.LG)
 - `limit`: 5
 - `sort_by`: "relevance"

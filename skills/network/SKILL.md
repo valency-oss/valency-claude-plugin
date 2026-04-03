@@ -15,7 +15,7 @@ The user provides an author name (e.g., "Yoshua Bengio").
 
 ### Step 1: Get author baseline
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_author_profile` with:
+Call `get_author_profile` with:
 - `author`: the author name
 
 If no results are found, tell the user the author was not found and suggest checking the spelling. Stop here.
@@ -24,7 +24,7 @@ Note the author's top categories from this result — you'll need them to identi
 
 ### Step 2: Get direct collaborators
 
-Call `mcp__claude_ai_Valency_Systems_Inc__find_coauthors` with:
+Call `find_coauthors` with:
 - `author`: the author name
 - `limit`: 20
 
@@ -32,7 +32,7 @@ This returns collaborators ranked by co-publication count. Note the top 5 collab
 
 ### Step 3: Get second-degree connections
 
-For each of the top 5 collaborators from Step 2, call `mcp__claude_ai_Valency_Systems_Inc__find_coauthors` with:
+For each of the top 5 collaborators from Step 2, call `find_coauthors` with:
 - `author`: the collaborator's normalized name (`coauthor_norm`)
 - `limit`: 10
 
@@ -40,7 +40,7 @@ Collect all second-degree collaborators. Remove any that are already direct coll
 
 ### Step 4: Compare focal author with top collaborators
 
-Call `mcp__claude_ai_Valency_Systems_Inc__compare_authors` with:
+Call `compare_authors` with:
 - `authors`: array containing the focal author name and up to 4 of their top collaborators (max 5 total, tool requires 2-10)
 
 This returns side-by-side profiles with category overlap information.

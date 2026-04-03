@@ -13,11 +13,11 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 
 ## Tool Chain
 
-Execute these steps in order. Use the full MCP tool names shown below.
+Execute these steps in order. Use the Valency MCP tools (see CLAUDE.md for tool name mapping).
 
 ### Step 1: Get author profile
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_author_profile` with:
+Call `get_author_profile` with:
 - `author`: the author name provided by the user
 
 This returns summary stats including top categories, publication timeline, co-author count, and total papers.
@@ -26,7 +26,7 @@ If no results are found, tell the user the author was not found and suggest chec
 
 ### Step 2: Get full publication list
 
-Call `mcp__claude_ai_Valency_Systems_Inc__search_by_author` with:
+Call `search_by_author` with:
 - `author`: the author name
 - `limit`: 10
 - `sort_by`: "citations"
@@ -36,7 +36,7 @@ This returns the author's top papers sorted by citation count.
 
 ### Step 3: Get research domain distribution
 
-Call `mcp__claude_ai_Valency_Systems_Inc__batch_author_categories` with:
+Call `batch_author_categories` with:
 - `authors`: an array containing the author name
 - `max_categories`: 10
 
@@ -44,7 +44,7 @@ This returns the category distribution for the author's publications.
 
 ### Step 4: Get top collaborators
 
-Call `mcp__claude_ai_Valency_Systems_Inc__find_coauthors` with:
+Call `find_coauthors` with:
 - `author`: the author name
 - `limit`: 10
 

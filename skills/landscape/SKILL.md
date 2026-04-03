@@ -19,14 +19,14 @@ The user provides either:
 
 **If the input matches an arXiv category pattern** (e.g., `cs.LG`):
 
-Call `mcp__claude_ai_Valency_Systems_Inc__search_by_category` with:
+Call `search_by_category` with:
 - `category`: the category code
 - `limit`: 10
 - `sort_by`: "citations"
 
 **If the input is free text:**
 
-Call `mcp__claude_ai_Valency_Systems_Inc__semantic_search_papers` with:
+Call `semantic_search_papers` with:
 - `query`: the user's input
 - `limit`: 10
 - `sort_by`: "citations"
@@ -37,21 +37,21 @@ If no results are found, tell the user and suggest trying different terms or che
 
 **If the input is a category code:**
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_publication_trends` with:
+Call `get_publication_trends` with:
 - `category`: the category code
 - `granularity`: "year"
 - `format`: "compact"
 
 **If the input is free text:**
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_keyword_trends` with:
+Call `get_keyword_trends` with:
 - `query`: the user's input
 - `granularity`: "year"
 - `format`: "compact"
 
 ### Step 3: Identify top authors
 
-Call `mcp__claude_ai_Valency_Systems_Inc__identify_prolific_authors` with:
+Call `identify_prolific_authors` with:
 - `category`: the category code (if input was a category), otherwise omit
 - `limit`: 10
 
@@ -59,14 +59,14 @@ Note: if the input was free text and no category was identified, skip this step 
 
 ### Step 4: Identify subdomains
 
-Call `mcp__claude_ai_Valency_Systems_Inc__identify_research_domains` with:
+Call `identify_research_domains` with:
 - `limit`: 10
 
 Note: this returns corpus-wide domain rankings. If the input was a category, the results contextualize where this category sits within the broader landscape.
 
 ### Step 5: Get corpus metrics
 
-Call `mcp__claude_ai_Valency_Systems_Inc__analyze_corpus_metrics` with:
+Call `analyze_corpus_metrics` with:
 - `category`: the category code (if input was a category), otherwise omit
 
 ## Output Format

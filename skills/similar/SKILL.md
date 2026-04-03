@@ -30,14 +30,14 @@ Do not assume all bioRxiv records use the `10.1101/...` prefix. Newer records ma
 
 **If the input is a paper ID** (arXiv ID, DOI, or PMID):
 
-Call `mcp__claude_ai_Valency_Systems_Inc__get_paper_by_id` with:
+Call `get_paper_by_id` with:
 - `paper_id`: the provided ID
 
 If no paper is found, tell the user the ID was not recognized and suggest searching by title instead. Stop here.
 
 **If the input looks like a title** (contains spaces):
 
-Call `mcp__claude_ai_Valency_Systems_Inc__search_by_title` with:
+Call `search_by_title` with:
 - `query`: the provided title
 - `limit`: 5
 
@@ -47,7 +47,7 @@ If no results are found, suggest the user check the title or try keywords from i
 
 ### Step 2: Find similar papers
 
-Call `mcp__claude_ai_Valency_Systems_Inc__find_similar_papers` with:
+Call `find_similar_papers` with:
 - `paper_id`: the resolved paper ID
 - `limit`: 10
 
@@ -55,7 +55,7 @@ If the paper has no embedding and returns an error, tell the user that semantic 
 
 ### Step 3: Enrich results (if needed)
 
-The results from Step 2 already include metadata (title, authors, abstract, categories). If any result is missing abstract or author data, call `mcp__claude_ai_Valency_Systems_Inc__get_paper_by_id` for those papers.
+The results from Step 2 already include metadata (title, authors, abstract, categories). If any result is missing abstract or author data, call `get_paper_by_id` for those papers.
 
 ## Output Format
 
