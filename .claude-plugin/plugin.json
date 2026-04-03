@@ -1,0 +1,20 @@
+{
+  "name": "valency",
+  "description": "Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv with semantic embeddings.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Valency Systems Inc"
+  },
+  "homepage": "https://valency.io",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "papers",
+    "arxiv",
+    "pubmed",
+    "biorxiv",
+    "medrxiv",
+    "literature-review",
+    "semantic-search"
+  ]
+}
