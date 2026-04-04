@@ -6,6 +6,8 @@ Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv,
 
 You need the Valency MCP connector configured in your Claude.ai account. Add it at [claude.ai/settings/connectors](https://claude.ai/settings/connectors) using the URL `https://labs.valency.io/mcp`.
 
+For detailed setup instructions, see the [Valency + Claude guide](https://docs.valency.io/guides/claude/).
+
 ## Installation
 
 Clone the repo and load it as a local plugin:
