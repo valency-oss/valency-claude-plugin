@@ -19,37 +19,54 @@ claude --plugin-dir ./valency-plugin
 
 To pick up changes without restarting, run `/reload-plugins` inside your session.
 
-## Commands
+## Usage
 
-### /valency:profile \<author_name\>
+The plugin works two ways: slash commands for explicit invocation, or natural language that triggers the right skill automatically.
 
-Build a comprehensive researcher profile: publication history, research domains, top papers, and collaborators.
+### Profile — researcher overview
 
 ```
 /valency:profile Yoshua Bengio
 ```
 
-### /valency:landscape \<topic_or_category\>
+Or just ask naturally:
 
-Generate a landscape overview of a research field: publication trends, top authors, subdomains, and notable papers.
+```
+Who is Yoshua Bengio?
+What does Sara Walker work on?
+Show me Daphne Koller's publications
+```
+
+### Landscape — field overview
 
 ```
 /valency:landscape cs.LG
 /valency:landscape protein folding
 ```
 
-### /valency:similar \<paper_id_or_title\>
+Or:
 
-Find semantically similar papers using neural embeddings.
+```
+What's happening in machine learning?
+Give me an overview of single cell RNA sequencing
+Who are the top authors in cs.AI?
+```
+
+### Similar — find related papers
 
 ```
 /valency:similar 1706.03762
 /valency:similar Attention Is All You Need
 ```
 
-### /valency:trends \<keyword_or_category\>
+Or:
 
-Show how a topic or category has evolved over time: publication volumes, inflection points, and representative papers. Supports comparisons with comma-separated inputs.
+```
+Find papers similar to Attention Is All You Need
+What's related to 2301.07041?
+```
+
+### Trends — topic evolution over time
 
 ```
 /valency:trends cs.AI
@@ -57,12 +74,26 @@ Show how a topic or category has evolved over time: publication volumes, inflect
 /valency:trends cs.LG, cs.CL
 ```
 
-### /valency:network \<author_name\>
+Or:
 
-Map a researcher's collaboration network: direct collaborators, second-degree connections, and cross-domain bridges.
+```
+Is cs.AI growing?
+When did CRISPR research take off?
+Compare machine learning vs natural language processing trends
+```
+
+### Network — collaboration mapping
 
 ```
 /valency:network Yoshua Bengio
+```
+
+Or:
+
+```
+Who does Yoshua Bengio collaborate with?
+Show me Jennifer Doudna's research network
+Find connections between researchers in protein folding
 ```
 
 ## Data Sources
