@@ -11,7 +11,7 @@ You need the Valency MCP connector configured in your Claude.ai account. Add it 
 Clone the repo and load it as a local plugin:
 
 ```bash
-git clone https://github.com/valency-labs/valency-plugin.git
+git clone https://github.com/valencyio/valency-plugin.git
 claude --plugin-dir ./valency-plugin
 ```
 
