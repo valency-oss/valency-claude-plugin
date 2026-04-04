@@ -1,6 +1,6 @@
 ---
 name: similar
-description: "Find semantically similar papers using neural embeddings. Usage: /valency:similar <paper_id_or_title>"
+description: "Use when the user wants to find papers similar to a specific paper, asks 'what's related to this paper', 'find me more like this', or wants to explore the neighborhood around a known paper. Triggers on paper IDs, arXiv IDs, DOIs, or paper titles followed by a similarity request. Also invokable as /valency:similar <paper_id_or_title>."
 ---
 
 # Similar Papers

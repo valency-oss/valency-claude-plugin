@@ -1,6 +1,6 @@
 ---
 name: profile
-description: "Build a comprehensive researcher profile — publication history, research domains, top papers, and collaborators. Usage: /valency:profile <author_name>"
+description: "Use when the user asks about a researcher's work, publications, research areas, collaborators, or academic profile. Triggers on questions like 'who is X', 'what does X work on', 'show me X's papers', or 'tell me about X' in a research context. Also invokable as /valency:profile <author_name>."
 ---
 
 # Researcher Profile

@@ -1,6 +1,6 @@
 ---
 name: landscape
-description: "Generate a landscape overview of a research field — publication trends, top authors, subdomains, and notable papers. Usage: /valency:landscape <topic_or_category>"
+description: "Use when the user asks for an overview of a research field, wants to understand a domain's key players, or asks 'what's happening in X' or 'give me a landscape of X'. Triggers on requests for field summaries, top authors in an area, or subdomain breakdowns. Also invokable as /valency:landscape <topic_or_category>."
 ---
 
 # Field Landscape

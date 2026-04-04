@@ -1,6 +1,6 @@
 ---
 name: network
-description: "Map a researcher's collaboration network — direct collaborators, second-degree connections, and cross-domain bridges. Usage: /valency:network <author_name>"
+description: "Use when the user asks about a researcher's collaborators, co-authors, research network, or wants to map who works with whom. Triggers on questions like 'who does X collaborate with', 'show me X's network', or 'find connections between researchers'. Also invokable as /valency:network <author_name>."
 ---
 
 # Collaboration Network

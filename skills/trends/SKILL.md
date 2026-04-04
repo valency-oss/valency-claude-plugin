@@ -1,6 +1,6 @@
 ---
 name: trends
-description: "Show how a research topic or category has evolved over time — publication volumes, inflection points, and representative papers. Usage: /valency:trends <keyword_or_category>"
+description: "Use when the user asks how a research topic has changed over time, wants publication volume trends, asks 'is X growing', 'when did X take off', or wants to compare the trajectories of two fields. Triggers on trend, growth, or timeline questions about research areas. Also invokable as /valency:trends <keyword_or_category>."
 ---
 
 # Publication Trends
