@@ -6,6 +6,7 @@
     "name": "Valency Systems Inc"
   },
   "homepage": "https://valency.io",
+  "skills": "./skills/",
   "license": "MIT",
   "keywords": [
     "research",
