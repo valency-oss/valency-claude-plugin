@@ -21,21 +21,13 @@ Then restart Claude Code. The plugin persists across sessions.
 
 ### Auto-approve MCP tool calls (recommended)
 
-By default, Claude Code will prompt you to approve each Valency tool call. Since these are read-only queries, you can auto-approve them by adding a hook to your global settings (`~/.claude/settings.json`):
+By default, Claude Code will prompt you to approve each Valency tool call. Since these are read-only queries, you can auto-approve them by adding to the permissions allow list in your global settings (`~/.claude/settings.json`):
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "mcp__claude_ai_Valency_Systems_Inc__",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"decision\": \"allow\"}'"
-          }
-        ]
-      }
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Valency_Systems_Inc__*"
     ]
   }
 }
