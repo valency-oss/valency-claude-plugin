@@ -1,0 +1,20 @@
+{
+  "name": "valency-plugin",
+  "owner": {
+    "name": "Valency Systems Inc",
+    "email": "support@valency.io"
+  },
+  "metadata": {
+    "description": "Research corpus tools for searching, profiling, and analyzing 36M+ papers across arXiv, PubMed, bioRxiv, and medRxiv",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "valency",
+      "description": "Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv with semantic embeddings.",
+      "source": "./",
+      "version": "0.1.0",
+      "homepage": "https://valency.io"
+    }
+  ]
+}

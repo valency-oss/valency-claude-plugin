@@ -10,14 +10,45 @@ For detailed setup instructions, see the [Valency + Claude guide](https://docs.v
 
 ## Installation
 
-Clone the repo and load it as a local plugin:
+Add the Valency marketplace and install the plugin:
+
+```bash
+claude plugin marketplace add valencyio/valency-plugin
+claude plugin install valency
+```
+
+Then restart Claude Code. The plugin persists across sessions.
+
+### Auto-approve MCP tool calls (recommended)
+
+By default, Claude Code will prompt you to approve each Valency tool call. Since these are read-only queries, you can auto-approve them by adding a hook to your global settings (`~/.claude/settings.json`):
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__claude_ai_Valency_Systems_Inc__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"decision\": \"allow\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Alternative: one-off session
+
+To try the plugin without installing:
 
 ```bash
 git clone https://github.com/valencyio/valency-plugin.git
 claude --plugin-dir ./valency-plugin
 ```
-
-To pick up changes without restarting, run `/reload-plugins` inside your session.
 
 ## Usage
 
