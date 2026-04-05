@@ -34,10 +34,12 @@ Call `get_keyword_trends` with:
 
 **If the input contains multiple categories** (comma-separated or "vs"):
 
-Call `get_publication_trends_batch` with:
-- `categories`: array of the category codes
+Call `get_publication_trends` individually for each category with:
+- `category`: each category code
 - `granularity`: "year"
 - `format`: "compact"
+
+Note: `get_publication_trends_batch` exists but is unreliable and frequently times out. Use individual calls instead and combine the results into a comparison table.
 
 **If the input contains multiple keywords** (comma-separated or "vs"):
 

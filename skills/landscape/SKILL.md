@@ -57,6 +57,8 @@ Call `identify_prolific_authors` with:
 
 Note: if the input was free text and no category was identified, skip this step and note that top-author ranking requires a category code.
 
+This tool can time out for very large categories (e.g., cs.LG). If it times out, skip this section in the output and note that author ranking was unavailable due to the size of the category.
+
 ### Step 4: Identify subdomains
 
 Call `identify_research_domains` with:
