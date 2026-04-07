@@ -117,7 +117,42 @@ Or:
 Who does Yoshua Bengio collaborate with?
 Show me Jennifer Doudna's research network
 Find connections between researchers in protein folding
+How has David Hogg's work diverged from his coauthors?
 ```
+
+The network skill also produces a Divergence Analysis section showing how each top collaborator's research focus has drifted from the focal author's — useful for understanding how a researcher's intellectual position has shifted relative to their closest peers.
+
+### Reading list — curated bibliography for a researcher
+
+```
+/valency:reading-list David W. Hogg
+```
+
+Or:
+
+```
+What should David Hogg be reading next?
+Build me a reading list for Yoshua Bengio
+Find adjacent literature for Sara Walker's research
+```
+
+Triangulates off the author's most-cited and most-recent papers to surface 5–8 recommendations per intellectual thread, with cross-thread papers (those that connect multiple threads of the author's work) highlighted separately.
+
+### Fresh collaborators — expand a researcher's network
+
+```
+/valency:fresh-collaborators David W. Hogg
+```
+
+Or:
+
+```
+Who should David Hogg be talking to that he isn't already?
+Find new potential collaborators for Yoshua Bengio
+Who are the new faces working on stellar dynamics that Jo Bovy doesn't know yet?
+```
+
+Returns researchers doing recent (last 12–18 months) thematically relevant work who are **not** in the focal author's existing top-100 coauthor network. Each candidate is tagged junior/senior and attributed to the theme(s) that surfaced them.
 
 ## Data Sources
 
