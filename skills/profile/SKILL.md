@@ -15,10 +15,12 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 
 Execute these steps in order. Use the Valency MCP tools (see CLAUDE.md for tool name mapping).
 
+**Type discipline:** All numeric parameters below (`limit`, `max_categories`, etc.) must be sent as JSON integers (`10`), NOT strings (`"10"`). All array parameters must be sent as JSON arrays (`["name"]`), NOT JSON-encoded strings (`"[\"name\"]"`). The MCP server enforces strict types and will reject string-encoded numbers or arrays.
+
 ### Step 1: Get author profile
 
 Call `get_author_profile` with:
-- `author`: the author name provided by the user
+- `author` (string): the author name provided by the user
 
 This returns summary stats including top categories, publication timeline, co-author count, and total papers.
 
@@ -27,26 +29,26 @@ If no results are found, tell the user the author was not found and suggest chec
 ### Step 2: Get full publication list
 
 Call `search_by_author` with:
-- `author`: the author name
-- `limit`: 10
-- `sort_by`: "citations"
-- `strict_mode`: "fuzzy"
+- `author` (string): the author name
+- `limit` (integer): 10
+- `sort_by` (string): "citations"
+- `strict_mode` (string): "fuzzy"
 
 This returns the author's top papers sorted by citation count.
 
 ### Step 3: Get research domain distribution
 
 Call `batch_author_categories` with:
-- `authors`: an array containing the author name
-- `max_categories`: 10
+- `authors` (array of strings): a JSON array containing the author name, e.g. `["David W. Hogg"]`
+- `max_categories` (integer): 10
 
 This returns the category distribution for the author's publications.
 
 ### Step 4: Get top collaborators
 
 Call `find_coauthors` with:
-- `author`: the author name
-- `limit`: 10
+- `author` (string): the author name
+- `limit` (integer): 10
 
 This returns the author's most frequent collaborators with co-publication counts.
 

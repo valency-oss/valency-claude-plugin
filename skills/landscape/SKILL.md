@@ -15,21 +15,23 @@ The user provides either:
 
 ## Tool Chain
 
+**Type discipline:** All numeric parameters below (`limit`, etc.) must be sent as JSON integers (`10`), NOT strings (`"10"`). The MCP server enforces strict types and will reject string-encoded numbers.
+
 ### Step 1: Find papers in the field
 
 **If the input matches an arXiv category pattern** (e.g., `cs.LG`):
 
 Call `search_by_category` with:
-- `category`: the category code
-- `limit`: 10
-- `sort_by`: "citations"
+- `category` (string): the category code
+- `limit` (integer): 10
+- `sort_by` (string): "citations"
 
 **If the input is free text:**
 
 Call `semantic_search_papers` with:
-- `query`: the user's input
-- `limit`: 10
-- `sort_by`: "citations"
+- `query` (string): the user's input
+- `limit` (integer): 10
+- `sort_by` (string): "citations"
 
 If no results are found, tell the user and suggest trying different terms or checking category codes with a broader search. Stop here.
 
@@ -38,22 +40,22 @@ If no results are found, tell the user and suggest trying different terms or che
 **If the input is a category code:**
 
 Call `get_publication_trends` with:
-- `category`: the category code
-- `granularity`: "year"
-- `format`: "compact"
+- `category` (string): the category code
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 **If the input is free text:**
 
 Call `get_keyword_trends` with:
-- `query`: the user's input
-- `granularity`: "year"
-- `format`: "compact"
+- `query` (string): the user's input
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 ### Step 3: Identify top authors
 
 Call `identify_prolific_authors` with:
-- `category`: the category code (if input was a category), otherwise omit
-- `limit`: 10
+- `category` (string): the category code (if input was a category), otherwise omit
+- `limit` (integer): 10
 
 Note: if the input was free text and no category was identified, skip this step and note that top-author ranking requires a category code.
 
@@ -62,14 +64,14 @@ This tool can time out for very large categories (e.g., cs.LG). If it times out,
 ### Step 4: Identify subdomains
 
 Call `identify_research_domains` with:
-- `limit`: 10
+- `limit` (integer): 10
 
 Note: this returns corpus-wide domain rankings. If the input was a category, the results contextualize where this category sits within the broader landscape.
 
 ### Step 5: Get corpus metrics
 
 Call `analyze_corpus_metrics` with:
-- `category`: the category code (if input was a category), otherwise omit
+- `category` (string): the category code (if input was a category), otherwise omit
 
 ## Output Format
 

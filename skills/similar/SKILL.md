@@ -26,20 +26,22 @@ Do not assume all bioRxiv records use the `10.1101/...` prefix. Newer records ma
 
 ## Tool Chain
 
+**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`10`), NOT strings (`"10"`). The MCP server enforces strict types and will reject string-encoded numbers.
+
 ### Step 1: Resolve paper ID (if needed)
 
 **If the input is a paper ID** (arXiv ID, DOI, or PMID):
 
 Call `get_paper_by_id` with:
-- `paper_id`: the provided ID
+- `paper_id` (string): the provided ID
 
 If no paper is found, tell the user the ID was not recognized and suggest searching by title instead. Stop here.
 
 **If the input looks like a title** (contains spaces):
 
 Call `search_by_title` with:
-- `query`: the provided title
-- `limit`: 5
+- `query` (string): the provided title
+- `limit` (integer): 5
 
 Present the top matches and ask the user to confirm which paper they mean, unless only one result is returned or the top result is a near-exact title match. Use the confirmed paper's ID for the next step.
 
@@ -48,8 +50,8 @@ If no results are found, suggest the user check the title or try keywords from i
 ### Step 2: Find similar papers
 
 Call `find_similar_papers` with:
-- `paper_id`: the resolved paper ID
-- `limit`: 10
+- `paper_id` (string): the resolved paper ID
+- `limit` (integer): 10
 
 If the paper has no embedding and returns an error, tell the user that semantic similarity is not available for this paper and suggest trying `semantic_search_papers` with keywords from its abstract instead. Stop here.
 

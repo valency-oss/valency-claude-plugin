@@ -16,44 +16,46 @@ The user provides one of:
 
 ## Tool Chain
 
+**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`5`), NOT strings (`"5"`). The MCP server enforces strict types and will reject string-encoded numbers.
+
 ### Step 1: Get trend data
 
 **If the input is a single category code:**
 
 Call `get_publication_trends` with:
-- `category`: the category code
-- `granularity`: "year"
-- `format`: "compact"
+- `category` (string): the category code
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 **If the input is a single keyword/phrase:**
 
 Call `get_keyword_trends` with:
-- `query`: the keyword
-- `granularity`: "year"
-- `format`: "compact"
+- `query` (string): the keyword
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 **If the input contains multiple categories** (comma-separated or "vs"):
 
 Call `get_publication_trends` individually for each category with:
-- `category`: each category code
-- `granularity`: "year"
-- `format`: "compact"
+- `category` (string): each category code
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 Note: `get_publication_trends_batch` exists but is unreliable and frequently times out. Use individual calls instead and combine the results into a comparison table.
 
 **If the input contains multiple keywords** (comma-separated or "vs"):
 
 Call `get_keyword_trends` once per keyword with:
-- `query`: each keyword
-- `granularity`: "year"
-- `format`: "compact"
+- `query` (string): each keyword
+- `granularity` (string): "year"
+- `format` (string): "compact"
 
 ### Step 2: Get recent representative papers
 
 Call `search_by_abstract` with:
-- `query`: the keyword or category name (use the human-readable name for categories, e.g., "machine learning" for cs.LG)
-- `limit`: 5
-- `sort_by`: "relevance"
+- `query` (string): the keyword or category name (use the human-readable name for categories, e.g., "machine learning" for cs.LG)
+- `limit` (integer): 5
+- `sort_by` (string): "relevance"
 
 ## Output Format
 

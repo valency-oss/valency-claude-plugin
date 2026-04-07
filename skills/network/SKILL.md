@@ -13,10 +13,12 @@ The user provides an author name (e.g., "Yoshua Bengio").
 
 ## Tool Chain
 
+**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`10`), NOT strings (`"10"`). All array parameters must be sent as JSON arrays (`["a", "b"]`), NOT JSON-encoded strings. The MCP server enforces strict types.
+
 ### Step 1: Get author baseline
 
 Call `get_author_profile` with:
-- `author`: the author name
+- `author` (string): the author name
 
 If no results are found, tell the user the author was not found and suggest checking the spelling. Stop here.
 
@@ -25,23 +27,23 @@ Note the author's top categories from this result — you'll need them to identi
 ### Step 2: Get direct collaborators
 
 Call `find_coauthors` with:
-- `author`: the author name
-- `limit`: 20
+- `author` (string): the author name
+- `limit` (integer): 20
 
 This returns collaborators ranked by co-publication count. Note the top 5 collaborators for the next step. Use the `coauthor_norm` field (normalized name) when passing names to subsequent tool calls.
 
 ### Step 3: Get second-degree connections
 
 For each of the top 5 collaborators from Step 2, call `find_coauthors` with:
-- `author`: the collaborator's normalized name (`coauthor_norm`)
-- `limit`: 10
+- `author` (string): the collaborator's normalized name (`coauthor_norm`)
+- `limit` (integer): 10
 
 Collect all second-degree collaborators. Remove any that are already direct collaborators of the focal author (from Step 2) or the focal author themselves.
 
 ### Step 4: Compare focal author with top collaborators
 
 Call `compare_authors` with:
-- `authors`: array containing the focal author name and up to 4 of their top collaborators (max 5 total, tool requires 2-10)
+- `authors` (array of strings): a JSON array containing the focal author name and up to 4 of their top collaborators (max 5 total, tool requires 2-10), e.g. `["Yoshua Bengio", "Ian Goodfellow", "Aaron Courville"]`
 
 This returns side-by-side profiles with category overlap information.
 
