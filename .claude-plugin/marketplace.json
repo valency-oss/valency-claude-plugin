@@ -12,7 +12,7 @@
     {
       "name": "valency",
       "description": "Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv with semantic embeddings.",
-      "source": "./",
+      "source": "./plugins/valency",
       "version": "0.1.0",
       "homepage": "https://valency.io"
     }
