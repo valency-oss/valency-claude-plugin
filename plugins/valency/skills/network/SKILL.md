@@ -13,8 +13,6 @@ The user provides an author name (e.g., "Yoshua Bengio").
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`10`), NOT strings (`"10"`). All array parameters must be sent as JSON arrays (`["a", "b"]`), NOT JSON-encoded strings. The MCP server enforces strict types.
-
 ### Step 1: Get author baseline
 
 Call `get_author_profile` with:

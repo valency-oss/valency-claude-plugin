@@ -15,8 +15,6 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 
 Execute these steps in order. Use the Valency MCP tools (see CLAUDE.md for tool name mapping).
 
-**Type discipline:** All numeric parameters below (`limit`, `max_categories`, etc.) must be sent as JSON integers (`10`), NOT strings (`"10"`). All array parameters must be sent as JSON arrays (`["name"]`), NOT JSON-encoded strings (`"[\"name\"]"`). The MCP server enforces strict types and will reject string-encoded numbers or arrays.
-
 ### Step 1: Get author profile
 
 Call `get_author_profile` with:

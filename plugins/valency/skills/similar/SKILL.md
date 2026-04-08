@@ -26,8 +26,6 @@ Do not assume all bioRxiv records use the `10.1101/...` prefix. Newer records ma
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`10`), NOT strings (`"10"`). The MCP server enforces strict types and will reject string-encoded numbers.
-
 ### Step 1: Resolve paper ID (if needed)
 
 **If the input is a paper ID** (arXiv ID, DOI, or PMID):

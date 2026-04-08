@@ -15,8 +15,6 @@ The user provides either:
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`, etc.) must be sent as JSON integers (`10`), NOT strings (`"10"`). The MCP server enforces strict types and will reject string-encoded numbers.
-
 ### Step 1: Find papers in the field
 
 **If the input matches an arXiv category pattern** (e.g., `cs.LG`):

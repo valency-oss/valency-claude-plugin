@@ -13,8 +13,6 @@ The user provides an author name (e.g., "David W. Hogg", "Yoshua Bengio", "Jenni
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`5`), NOT strings (`"5"`). The MCP server enforces strict types and will reject string-encoded numbers.
-
 ### Step 1: Verify the author exists
 
 Call `get_author_profile` with:

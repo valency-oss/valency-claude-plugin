@@ -15,8 +15,6 @@ Optional: a number of months for the recency window. If not specified, default t
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`100`), NOT strings (`"100"`). All array parameters must be sent as JSON arrays. The MCP server enforces strict types.
-
 **Date discipline:** Compute the cutoff date as `today - <window_months>`, formatted as `YYYY-MM-DD`. Use this cutoff string consistently in Step 5.
 
 ### Step 1: Verify the author exists
@@ -70,15 +68,14 @@ Bad themes (too narrow or too broad):
 
 For each theme from Step 4, call `semantic_search_papers` with:
 - `query` (string): the theme phrase
-- `limit` (integer): 50
+- `start_date` (string): the cutoff date computed in the Date discipline section, `YYYY-MM-DD`
+- `limit` (integer): 25
 - `sort_by` (string): "relevance"
 - `include_abstract` (boolean): false
 
-**Date filter (post-filter workaround).** As of the current MCP server version, `semantic_search_papers` does not accept date parameters. After the call returns, **filter the results in-memory**: keep only papers whose `first_submitted` field is `>= cutoff`. Drop the rest.
+Passing `start_date` restricts the server-side similarity search to papers published on or after the cutoff, so every result is recent by construction — no in-memory date filtering needed.
 
-> **When native date filtering ships:** replace this in-memory filter with `start_date` (string, `YYYY-MM-DD`) passed directly to `semantic_search_papers`. The rest of this skill is unchanged.
-
-If after filtering a theme has fewer than 5 surviving papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
+If a theme returns fewer than 5 papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
 
 ### Step 6: Filter against the exclusion set
 
@@ -123,13 +120,7 @@ Show the top 10 candidates. If fewer than 10 survived, show all of them.
 
 ### Theme Coverage Notes
 
-For each theme from Step 4, report the number of papers found, the number that survived date filtering, and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
-
-### Known Limitations
-
-Include this verbatim, until the MCP server lands native date filtering:
-
-> **Coverage caveat:** This skill currently uses `semantic_search_papers` with a high result limit and post-filters in-memory by `first_submitted`. If a highly relevant recent paper falls below the top-50 by similarity score, it will be missed. Coverage will improve when the MCP server adds native `start_date` / `end_date` parameters to `semantic_search_papers`. See valencyio/valency-mcp-server issue tracker.
+For each theme from Step 4, report the number of papers returned by the date-restricted search and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
 
 ### Suggested Follow-ups
 

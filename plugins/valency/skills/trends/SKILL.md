@@ -16,8 +16,6 @@ The user provides one of:
 
 ## Tool Chain
 
-**Type discipline:** All numeric parameters below (`limit`) must be sent as JSON integers (`5`), NOT strings (`"5"`). The MCP server enforces strict types and will reject string-encoded numbers.
-
 ### Step 1: Get trend data
 
 **If the input is a single category code:**
