@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Research corpus tools for searching, profiling, and analyzing 36M+ papers across arXiv, PubMed, bioRxiv, and medRxiv",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "valency",
       "description": "Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv with semantic embeddings.",
       "source": "./plugins/valency",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "homepage": "https://valency.io"
     }
   ]

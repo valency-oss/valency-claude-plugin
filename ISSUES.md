@@ -29,3 +29,16 @@ The `get_publication_trends_batch` MCP tool consistently times out, even for sma
 **Status:** Workaround in place
 
 The `identify_prolific_authors` tool times out for large categories like cs.LG. The landscape skill now handles this gracefully by skipping the top-authors section when a timeout occurs. No server-side fix needed unless the tool's performance improves.
+
+## 6. Optional recency window for `reading-list`
+
+**Status:** Deferred (scope question, not a bug)
+
+PR valencyio/valency-mcp-server#343 added `start_date`/`end_date` to `find_similar_papers`. The `reading-list` skill's Step 5 currently returns all-time similars for each seed, which is the right default for a bibliography. We could add an optional recency window — e.g., "reading list for David Hogg since 2023" — that threads `start_date` through to the `find_similar_papers` calls.
+
+Open questions before implementing:
+- How should the user surface it? A positional `since <YYYY>` argument on `/valency:reading-list`, a natural-language trigger, or both?
+- Should the window apply per-thread or globally across all seeds?
+- What happens if a thread returns too few results after date filtering — fall back to all-time, or show the sparse thread as-is?
+
+Brainstorm these before touching the skill.
