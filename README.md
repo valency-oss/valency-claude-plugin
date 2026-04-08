@@ -2,6 +2,8 @@
 
 Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv directly from Claude Code.
 
+The plugin exposes seven skills that turn natural-language questions into structured queries against a 36M-paper corpus (arXiv, PubMed, bioRxiv, medRxiv) via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
+
 ## Prerequisites
 
 You need the Valency MCP connector configured in your Claude.ai account. Add it at [claude.ai/settings/connectors](https://claude.ai/settings/connectors) using the URL `https://labs.valency.io/mcp`.
