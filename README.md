@@ -2,7 +2,7 @@
 
 The plugin exposes seven skills that turn natural-language questions into structured queries against a 36M-paper corpus (arXiv, PubMed, bioRxiv, medRxiv) via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
 
-The Valency MCP is available on claude.ai too. What the plugin adds is orchestration: each skill is a prescribed chain of tool calls, not a single search. `/valency:reading-list` doesn't just search an author's work. It pulls their most-cited and most-recent papers, clusters them into intellectual threads, finds similar work per thread, then flags papers that surface across multiple threads. That kind of multi-step dance is what the skills encode.
+What the plugin adds is orchestration: each skill is a prescribed chain of tool calls, not a single search. `/valency:reading-list` doesn't just search an author's work. It pulls their most-cited and most-recent papers, clusters them into intellectual threads, finds similar work per thread, then flags papers that surface across multiple threads. That kind of multi-step dance is what the skills encode.
 
 ## Prerequisites
 
