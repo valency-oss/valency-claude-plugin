@@ -1,6 +1,6 @@
 # Valency — Research Corpus Plugin for Claude Code
 
-The plugin exposes seven skills that turn natural-language questions into structured queries against a 36M-paper corpus (arXiv, PubMed, bioRxiv, medRxiv) via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
+The plugin exposes seven skills that turn natural-language questions into structured queries against millions of research papers via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
 
 What the plugin adds is orchestration: each skill is a prescribed chain of tool calls, not a single search. `/valency:reading-list` doesn't just search an author's work. It pulls their most-cited and most-recent papers, clusters them into intellectual threads, finds similar work per thread, then flags papers that surface across multiple threads. That kind of multi-step dance is what the skills encode.
 
@@ -153,15 +153,6 @@ Who are the new faces working on stellar dynamics that Jo Bovy doesn't know yet?
 ```
 
 Returns researchers doing recent (last 12–18 months) thematically relevant work who are **not** in the focal author's existing top-100 coauthor network. Each candidate is tagged junior/senior and attributed to the theme(s) that surfaced them.
-
-## Data Sources
-
-| Source | Papers |
-|--------|--------|
-| arXiv  | 4.6M   |
-| PubMed | 31.1M  |
-| bioRxiv| 402K   |
-| medRxiv| 100K   |
 
 ## License
 
