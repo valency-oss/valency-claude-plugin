@@ -1,2 +1,7 @@
 .claude/settings.local.json
 dev-reinstall.md
+.DS_Store
+node_modules/
+.env
+.env.local
+.env.*

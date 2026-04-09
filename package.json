@@ -1,5 +1,16 @@
 {
   "name": "valency",
   "version": "0.2.1",
-  "type": "module"
+  "type": "module",
+  "description": "Search, profile, and analyze 36M+ research papers across arXiv, PubMed, bioRxiv, and medRxiv with semantic embeddings.",
+  "license": "MIT",
+  "author": "Valency Systems Inc",
+  "homepage": "https://valency.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/valencyio/valency-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/valencyio/valency-plugin/issues"
+  }
 }
