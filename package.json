@@ -1,6 +1,6 @@
 {
   "name": "valency",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "description": "Search, profile, and analyze millions of research papers with semantic embeddings.",
   "license": "MIT",
