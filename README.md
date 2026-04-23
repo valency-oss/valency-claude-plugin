@@ -27,7 +27,7 @@ By default, Claude Code will prompt you to approve each Valency tool call. Since
 {
   "permissions": {
     "allow": [
-      "mcp__claude_ai_Valency_Systems_Inc__*"
+      "mcp__valency-mcp__*"
     ]
   }
 }
