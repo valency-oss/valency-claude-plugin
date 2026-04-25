@@ -7,6 +7,7 @@ from pathlib import Path
 
 from detect_mcp_prefix import (
     build_context,
+    claude_ai_integrations_might_exist,
     display_name_to_prefix,
     find_valency_prefix,
     find_valency_prefix_in_mcp_list,
@@ -188,3 +189,31 @@ def test_returns_none_for_empty_mcp_list_output() -> None:
 def test_ignores_lines_without_url() -> None:
     output = "Checking MCP server health…\n\nsome other diagnostic line\n"
     assert find_valency_prefix_in_mcp_list(output) is None
+
+
+def test_claude_ai_gate_true_when_flag_set(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    _write_json(config, {"claudeAiMcpEverConnected": True})
+    assert claude_ai_integrations_might_exist(config) is True
+
+
+def test_claude_ai_gate_false_when_flag_missing(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    _write_json(config, {})
+    assert claude_ai_integrations_might_exist(config) is False
+
+
+def test_claude_ai_gate_false_when_flag_false(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    _write_json(config, {"claudeAiMcpEverConnected": False})
+    assert claude_ai_integrations_might_exist(config) is False
+
+
+def test_claude_ai_gate_false_when_config_missing(tmp_path: Path) -> None:
+    assert claude_ai_integrations_might_exist(tmp_path / "missing.json") is False
+
+
+def test_claude_ai_gate_false_when_config_malformed(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    config.write_text("not json{{")
+    assert claude_ai_integrations_might_exist(config) is False

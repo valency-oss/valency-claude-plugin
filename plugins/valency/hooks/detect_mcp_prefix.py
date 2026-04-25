@@ -23,7 +23,7 @@ from typing import Any, Iterator
 
 DOCS_URL = "https://docs.valency.io/"
 VALENCY_DOMAIN = "valency.io"
-MCP_LIST_TIMEOUT_SECONDS = 20.0
+MCP_LIST_TIMEOUT_SECONDS = 10.0
 _NAME_SEPARATOR_RE = re.compile(r"[ .:]+")
 _MCP_LIST_LINE_RE = re.compile(r"^(?P<name>[^:]+?):\s+(?P<url>https?://\S+)")
 
@@ -58,6 +58,20 @@ def find_valency_prefix(*config_paths: Path) -> str | None:
                 if isinstance(url, str) and VALENCY_DOMAIN in url:
                     return f"mcp__{name}__"
     return None
+
+
+def claude_ai_integrations_might_exist(claude_json_path: Path) -> bool:
+    """Return True if the user has ever connected a Claude.ai-managed MCP.
+
+    Used to gate the slow `claude mcp list` fallback: skipping it when the user
+    has never used a web integration avoids a per-session health-check stall
+    for the (common) CLI-only setup.
+    """
+    try:
+        data = json.loads(claude_json_path.read_text())
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return False
+    return isinstance(data, dict) and data.get("claudeAiMcpEverConnected") is True
 
 
 def display_name_to_prefix(name: str) -> str:
@@ -131,7 +145,7 @@ def main() -> int:
     paths = [home / ".claude.json", cwd / ".mcp.json"]
 
     prefix = find_valency_prefix(*paths)
-    if prefix is None:
+    if prefix is None and claude_ai_integrations_might_exist(home / ".claude.json"):
         mcp_list_output = _run_mcp_list()
         if mcp_list_output is not None:
             prefix = find_valency_prefix_in_mcp_list(mcp_list_output)
