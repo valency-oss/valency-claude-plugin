@@ -9,7 +9,7 @@ All data retrieval goes through the Valency MCP server tools.
 
 ## Tool Names
 
-Skills reference Valency tools by short name (e.g., `get_author_profile`). Match these to the actual Valency MCP tools available in your session — they are typically prefixed with `mcp__valency-mcp__` (e.g., `mcp__valency-mcp__get_author_profile`).
+Skills use short tool names (e.g., `get_author_profile`). Prepend the Valency MCP prefix to every call. If no prefix is available, surface the setup notice instead of attempting calls.
 
 ## Rules
 
