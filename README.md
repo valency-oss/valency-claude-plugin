@@ -6,7 +6,13 @@ What the plugin adds is orchestration: each skill is a prescribed chain of tool 
 
 ## Prerequisites
 
-You need the Valency MCP connector configured in your Claude.ai account. See the [Valency docs on connecting your MCP](https://docs.valency.io).
+You need the Valency MCP server configured in your Claude Code session. The recommended install is:
+
+```bash
+claude mcp add --transport http valency-mcp https://labs.valency.io/mcp
+```
+
+The plugin detects whatever name you pick at session start, but using the canonical name (`valency-mcp`) keeps the permissions snippet below working as-is. See the [Valency docs](https://docs.valency.io/) for alternative setup options.
 
 ## Installation
 

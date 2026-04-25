@@ -1,0 +1,16 @@
+{
+  "description": "Detect the Valency MCP tool prefix at session start so skills can call tools deterministically regardless of the user's MCP server name.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/detect_mcp_prefix.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -9,7 +9,9 @@ All data retrieval goes through the Valency MCP server tools.
 
 ## Tool Names
 
-Skills reference Valency tools by short name (e.g., `get_author_profile`). Match these to the actual Valency MCP tools available in your session — they are typically prefixed with `mcp__valency-mcp__` (e.g., `mcp__valency-mcp__get_author_profile`).
+Skills reference Valency tools by short name (e.g., `get_author_profile`). The actual MCP tool prefix depends on what the user named the server when they ran `claude mcp add`, so it is detected at session start by the plugin's SessionStart hook and reported via injected context. Use that prefix (e.g., `mcp__valency-mcp__get_author_profile`) for every tool call.
+
+If the session-start context says the Valency MCP is not configured, do not attempt to call Valency tools — surface the setup notice to the user instead.
 
 ## Rules
 
