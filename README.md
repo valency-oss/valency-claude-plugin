@@ -39,6 +39,8 @@ By default, Claude Code will prompt you to approve each Valency tool call. Since
 }
 ```
 
+If you connected Valency through a Claude.ai web integration instead of the CLI, replace `mcp__valency-mcp__*` with the prefix shown in the session-start notice (typically `mcp__claude_ai_Valency_Systems_Inc__*`).
+
 ### Alternative: one-off session
 
 To try the plugin without installing:

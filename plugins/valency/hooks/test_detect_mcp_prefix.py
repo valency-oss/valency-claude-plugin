@@ -179,6 +179,17 @@ def test_finds_claude_ai_valency_in_mcp_list_output() -> None:
     )
 
 
+def test_finds_valency_when_display_name_contains_colon() -> None:
+    output = (
+        "claude.ai Moxn: Roll For Vibes: https://moxn.example/mcp - ✓ Connected\n"
+        "claude.ai Valency: Research Tools: https://api.valency.io/mcp - ✓ Connected\n"
+    )
+    assert (
+        find_valency_prefix_in_mcp_list(output)
+        == "mcp__claude_ai_Valency_Research_Tools__"
+    )
+
+
 def test_returns_none_when_mcp_list_has_no_valency_entry() -> None:
     output = "claude.ai Slack: https://mcp.slack.com/mcp - ✓ Connected\n"
     assert find_valency_prefix_in_mcp_list(output) is None
@@ -190,6 +201,45 @@ def test_returns_none_for_empty_mcp_list_output() -> None:
 
 def test_ignores_lines_without_url() -> None:
     output = "Checking MCP server health…\n\nsome other diagnostic line\n"
+    assert find_valency_prefix_in_mcp_list(output) is None
+
+
+def test_file_scan_rejects_lookalike_hostnames(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    _write_json(
+        config,
+        {
+            "mcpServers": {
+                "spoof-1": {"type": "http", "url": "https://notvalency.io/mcp"},
+                "spoof-2": {
+                    "type": "http",
+                    "url": "https://valency.io.attacker.example/mcp",
+                },
+                "spoof-3": {"type": "http", "url": "https://evilvalency.io/mcp"},
+            }
+        },
+    )
+    assert find_valency_prefix(config) is None
+
+
+def test_file_scan_accepts_apex_and_subdomain(tmp_path: Path) -> None:
+    config = tmp_path / "claude.json"
+    _write_json(
+        config,
+        {
+            "mcpServers": {
+                "apex": {"type": "http", "url": "https://valency.io/mcp"},
+            }
+        },
+    )
+    assert find_valency_prefix(config) == "mcp__apex__"
+
+
+def test_mcp_list_rejects_lookalike_hostnames() -> None:
+    output = (
+        "spoof: https://notvalency.io/mcp - ✓ Connected\n"
+        "spoof2: https://valency.io.attacker.example/mcp - ✓ Connected\n"
+    )
     assert find_valency_prefix_in_mcp_list(output) is None
 
 

@@ -21,13 +21,29 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator
+from urllib.parse import urlparse
 
 DOCS_URL = "https://docs.valency.io/"
 VALENCY_DOMAIN = "valency.io"
 MCP_LIST_TIMEOUT_SECONDS = 10.0
 _NAME_SEPARATOR_RE = re.compile(r"[ .:]+")
-_MCP_LIST_LINE_RE = re.compile(r"^(?P<name>[^:]+?):\s+(?P<url>https?://\S+)")
+_MCP_LIST_LINE_RE = re.compile(r"^(?P<name>.+?):\s+(?P<url>https?://\S+)")
 _SESSION_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_-]")
+
+
+def _is_valency_url(url: str) -> bool:
+    """Return True iff the URL's hostname is `valency.io` or a subdomain.
+
+    Tighter than a substring match — `notvalency.io` and
+    `valency.io.attacker.example` correctly fail.
+    """
+    if not isinstance(url, str):
+        return False
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return False
+    return host == VALENCY_DOMAIN or host.endswith("." + VALENCY_DOMAIN)
 
 
 def _walk_mcp_servers(obj: Any) -> Iterator[dict[str, Any]]:
@@ -57,7 +73,7 @@ def find_valency_prefix(*config_paths: Path) -> str | None:
                 if not isinstance(config, dict):
                     continue
                 url = config.get("url") or ""
-                if isinstance(url, str) and VALENCY_DOMAIN in url:
+                if _is_valency_url(url):
                     return f"mcp__{name}__"
     return None
 
@@ -116,15 +132,18 @@ def find_valency_prefix_in_mcp_list(output: str) -> str | None:
         match = _MCP_LIST_LINE_RE.match(line.strip())
         if match is None:
             continue
-        url = match.group("url")
-        if VALENCY_DOMAIN not in url:
+        if not _is_valency_url(match.group("url")):
             continue
         return display_name_to_prefix(match.group("name").strip())
     return None
 
 
 def _run_mcp_list(timeout: float = MCP_LIST_TIMEOUT_SECONDS) -> str | None:
-    """Run `claude mcp list` and return its combined output, or None on failure."""
+    """Run `claude mcp list` and return stdout, or None on failure.
+
+    stderr carries health-check diagnostics that aren't part of the server list,
+    so we ignore it to avoid feeding noise into the line parser.
+    """
     try:
         result = subprocess.run(
             ["claude", "mcp", "list"],
@@ -135,7 +154,7 @@ def _run_mcp_list(timeout: float = MCP_LIST_TIMEOUT_SECONDS) -> str | None:
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return None
-    return (result.stdout or "") + (result.stderr or "")
+    return result.stdout or ""
 
 
 def build_context(prefix: str | None) -> str:
