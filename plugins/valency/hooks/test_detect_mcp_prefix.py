@@ -7,10 +7,12 @@ from pathlib import Path
 
 from detect_mcp_prefix import (
     build_context,
-    claude_ai_integrations_might_exist,
+    cache_path_for_session,
     display_name_to_prefix,
     find_valency_prefix,
     find_valency_prefix_in_mcp_list,
+    read_cached_prefix,
+    write_cached_prefix,
 )
 
 
@@ -191,29 +193,66 @@ def test_ignores_lines_without_url() -> None:
     assert find_valency_prefix_in_mcp_list(output) is None
 
 
-def test_claude_ai_gate_true_when_flag_set(tmp_path: Path) -> None:
-    config = tmp_path / "claude.json"
-    _write_json(config, {"claudeAiMcpEverConnected": True})
-    assert claude_ai_integrations_might_exist(config) is True
+def test_cache_path_for_session_returns_path(tmp_path: Path) -> None:
+    path = cache_path_for_session("abc123", tmp_path)
+    assert path is not None
+    assert path.parent == tmp_path
+    assert "abc123" in path.name
 
 
-def test_claude_ai_gate_false_when_flag_missing(tmp_path: Path) -> None:
-    config = tmp_path / "claude.json"
-    _write_json(config, {})
-    assert claude_ai_integrations_might_exist(config) is False
+def test_cache_path_for_session_none_when_missing() -> None:
+    assert cache_path_for_session(None, Path("/tmp")) is None
 
 
-def test_claude_ai_gate_false_when_flag_false(tmp_path: Path) -> None:
-    config = tmp_path / "claude.json"
-    _write_json(config, {"claudeAiMcpEverConnected": False})
-    assert claude_ai_integrations_might_exist(config) is False
+def test_cache_path_for_session_none_when_empty() -> None:
+    assert cache_path_for_session("", Path("/tmp")) is None
 
 
-def test_claude_ai_gate_false_when_config_missing(tmp_path: Path) -> None:
-    assert claude_ai_integrations_might_exist(tmp_path / "missing.json") is False
+def test_cache_path_for_session_sanitizes_weird_chars(tmp_path: Path) -> None:
+    path = cache_path_for_session("foo/../bar baz!", tmp_path)
+    assert path is not None
+    assert "/" not in path.name
+    assert ".." not in path.name
 
 
-def test_claude_ai_gate_false_when_config_malformed(tmp_path: Path) -> None:
-    config = tmp_path / "claude.json"
-    config.write_text("not json{{")
-    assert claude_ai_integrations_might_exist(config) is False
+def test_read_cached_prefix_miss_when_file_absent(tmp_path: Path) -> None:
+    cache = tmp_path / "missing"
+    assert read_cached_prefix(cache) == (False, None)
+
+
+def test_read_cached_prefix_returns_value(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    cache.write_text("mcp__valency-mcp__")
+    assert read_cached_prefix(cache) == (True, "mcp__valency-mcp__")
+
+
+def test_read_cached_prefix_empty_means_negative_cached(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    cache.write_text("")
+    assert read_cached_prefix(cache) == (True, None)
+
+
+def test_write_cached_prefix_persists_value(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    write_cached_prefix(cache, "mcp__val__")
+    assert cache.read_text() == "mcp__val__"
+
+
+def test_write_cached_prefix_writes_empty_for_none(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    write_cached_prefix(cache, None)
+    assert cache.exists()
+    assert cache.read_text() == ""
+
+
+def test_write_cached_prefix_creates_parent_dirs(tmp_path: Path) -> None:
+    cache = tmp_path / "deep" / "nested" / "cache"
+    write_cached_prefix(cache, "mcp__val__")
+    assert cache.read_text() == "mcp__val__"
+
+
+def test_write_cached_prefix_overwrites(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    write_cached_prefix(cache, "old")
+    write_cached_prefix(cache, "new")
+    assert cache.read_text() == "new"

@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -26,6 +27,7 @@ VALENCY_DOMAIN = "valency.io"
 MCP_LIST_TIMEOUT_SECONDS = 10.0
 _NAME_SEPARATOR_RE = re.compile(r"[ .:]+")
 _MCP_LIST_LINE_RE = re.compile(r"^(?P<name>[^:]+?):\s+(?P<url>https?://\S+)")
+_SESSION_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_-]")
 
 
 def _walk_mcp_servers(obj: Any) -> Iterator[dict[str, Any]]:
@@ -60,18 +62,40 @@ def find_valency_prefix(*config_paths: Path) -> str | None:
     return None
 
 
-def claude_ai_integrations_might_exist(claude_json_path: Path) -> bool:
-    """Return True if the user has ever connected a Claude.ai-managed MCP.
+def cache_path_for_session(session_id: str | None, base_dir: Path) -> Path | None:
+    """Return a session-scoped cache file path, or None if session_id is missing.
 
-    Used to gate the slow `claude mcp list` fallback: skipping it when the user
-    has never used a web integration avoids a per-session health-check stall
-    for the (common) CLI-only setup.
+    The cache lets us avoid re-running `claude mcp list` (which does network
+    health checks) on every `clear`/`compact` event within the same session.
     """
+    if not isinstance(session_id, str) or not session_id:
+        return None
+    safe = _SESSION_ID_SAFE_RE.sub("_", session_id)[:64]
+    return base_dir / f"valency-prefix-{safe}"
+
+
+def read_cached_prefix(path: Path) -> tuple[bool, str | None]:
+    """Return (cache_hit, prefix). cache_hit=True means detection should be skipped.
+
+    Empty file means a previous run completed and found no Valency MCP — that
+    negative result is cached too so we don't re-stall on subsequent events.
+    """
+    if not path.exists():
+        return False, None
     try:
-        data = json.loads(claude_json_path.read_text())
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
-        return False
-    return isinstance(data, dict) and data.get("claudeAiMcpEverConnected") is True
+        content = path.read_text().strip()
+    except OSError:
+        return False, None
+    return True, (content or None)
+
+
+def write_cached_prefix(path: Path, prefix: str | None) -> None:
+    """Persist the detection result so later events in the session reuse it."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(prefix or "")
+    except OSError:
+        pass
 
 
 def display_name_to_prefix(name: str) -> str:
@@ -138,17 +162,35 @@ def _read_hook_input() -> dict[str, Any]:
         return {}
 
 
+def _detect_prefix(paths: list[Path]) -> str | None:
+    prefix = find_valency_prefix(*paths)
+    if prefix is not None:
+        return prefix
+    mcp_list_output = _run_mcp_list()
+    if mcp_list_output is None:
+        return None
+    return find_valency_prefix_in_mcp_list(mcp_list_output)
+
+
 def main() -> int:
     hook_input = _read_hook_input()
     home = Path.home()
     cwd = Path(hook_input.get("cwd") or os.getcwd())
     paths = [home / ".claude.json", cwd / ".mcp.json"]
 
-    prefix = find_valency_prefix(*paths)
-    if prefix is None and claude_ai_integrations_might_exist(home / ".claude.json"):
-        mcp_list_output = _run_mcp_list()
-        if mcp_list_output is not None:
-            prefix = find_valency_prefix_in_mcp_list(mcp_list_output)
+    cache = cache_path_for_session(
+        hook_input.get("session_id"), Path(tempfile.gettempdir())
+    )
+    if cache is not None:
+        cache_hit, cached_prefix = read_cached_prefix(cache)
+        if cache_hit:
+            prefix: str | None = cached_prefix
+        else:
+            prefix = _detect_prefix(paths)
+            write_cached_prefix(cache, prefix)
+    else:
+        prefix = _detect_prefix(paths)
+
     output = {
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
