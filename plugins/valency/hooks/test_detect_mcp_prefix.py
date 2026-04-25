@@ -5,7 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from detect_mcp_prefix import build_context, find_valency_prefix
+from detect_mcp_prefix import (
+    build_context,
+    display_name_to_prefix,
+    find_valency_prefix,
+    find_valency_prefix_in_mcp_list,
+)
 
 
 def _write_json(path: Path, data: dict) -> None:
@@ -124,3 +129,62 @@ def test_build_context_without_prefix_warns_and_links_docs() -> None:
     ctx = build_context(None)
     assert "https://docs.valency.io/" in ctx
     assert "not configured" in ctx.lower()
+
+
+def test_display_name_passes_through_simple_cli_name() -> None:
+    assert display_name_to_prefix("valency-mcp") == "mcp__valency-mcp__"
+
+
+def test_display_name_collapses_dot_and_space() -> None:
+    assert display_name_to_prefix("claude.ai Slack") == "mcp__claude_ai_Slack__"
+
+
+def test_display_name_collapses_colon_space_runs() -> None:
+    assert (
+        display_name_to_prefix("claude.ai Moxn: Roll For Vibes")
+        == "mcp__claude_ai_Moxn_Roll_For_Vibes__"
+    )
+
+
+def test_display_name_handles_valency_systems_inc() -> None:
+    assert (
+        display_name_to_prefix("claude.ai Valency Systems Inc")
+        == "mcp__claude_ai_Valency_Systems_Inc__"
+    )
+
+
+MCP_LIST_SAMPLE = """\
+Checking MCP server health…
+
+claude.ai Slack: https://mcp.slack.com/mcp - ✓ Connected
+claude.ai Google Drive: https://drivemcp.googleapis.com/mcp/v1 - ! Needs authentication
+valency-mcp: https://labs.valency.io/mcp - ✓ Connected
+"""
+
+
+def test_finds_cli_valency_in_mcp_list_output() -> None:
+    assert find_valency_prefix_in_mcp_list(MCP_LIST_SAMPLE) == "mcp__valency-mcp__"
+
+
+def test_finds_claude_ai_valency_in_mcp_list_output() -> None:
+    output = (
+        "claude.ai Valency Systems Inc: https://api.valency.io/mcp - ✓ Connected\n"
+    )
+    assert (
+        find_valency_prefix_in_mcp_list(output)
+        == "mcp__claude_ai_Valency_Systems_Inc__"
+    )
+
+
+def test_returns_none_when_mcp_list_has_no_valency_entry() -> None:
+    output = "claude.ai Slack: https://mcp.slack.com/mcp - ✓ Connected\n"
+    assert find_valency_prefix_in_mcp_list(output) is None
+
+
+def test_returns_none_for_empty_mcp_list_output() -> None:
+    assert find_valency_prefix_in_mcp_list("") is None
+
+
+def test_ignores_lines_without_url() -> None:
+    output = "Checking MCP server health…\n\nsome other diagnostic line\n"
+    assert find_valency_prefix_in_mcp_list(output) is None

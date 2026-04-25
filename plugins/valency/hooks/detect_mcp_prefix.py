@@ -15,12 +15,17 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Iterator
 
 DOCS_URL = "https://docs.valency.io/"
 VALENCY_DOMAIN = "valency.io"
+MCP_LIST_TIMEOUT_SECONDS = 20.0
+_NAME_SEPARATOR_RE = re.compile(r"[ .:]+")
+_MCP_LIST_LINE_RE = re.compile(r"^(?P<name>[^:]+?):\s+(?P<url>https?://\S+)")
 
 
 def _walk_mcp_servers(obj: Any) -> Iterator[dict[str, Any]]:
@@ -55,6 +60,46 @@ def find_valency_prefix(*config_paths: Path) -> str | None:
     return None
 
 
+def display_name_to_prefix(name: str) -> str:
+    """Convert an MCP server display name (as shown by `claude mcp list`) to the
+    `mcp__<sanitized>__` prefix Claude Code uses internally for that server."""
+    sanitized = _NAME_SEPARATOR_RE.sub("_", name).strip("_")
+    return f"mcp__{sanitized}__"
+
+
+def find_valency_prefix_in_mcp_list(output: str) -> str | None:
+    """Search `claude mcp list` stdout for an entry pointing at valency.io.
+
+    Returns the matching prefix or None. This covers both CLI-configured servers
+    (whose names map straight through) and Claude.ai web integrations (whose
+    names like `claude.ai Valency Systems Inc` need sanitizing).
+    """
+    for line in output.splitlines():
+        match = _MCP_LIST_LINE_RE.match(line.strip())
+        if match is None:
+            continue
+        url = match.group("url")
+        if VALENCY_DOMAIN not in url:
+            continue
+        return display_name_to_prefix(match.group("name").strip())
+    return None
+
+
+def _run_mcp_list(timeout: float = MCP_LIST_TIMEOUT_SECONDS) -> str | None:
+    """Run `claude mcp list` and return its combined output, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["claude", "mcp", "list"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+    return (result.stdout or "") + (result.stderr or "")
+
+
 def build_context(prefix: str | None) -> str:
     if prefix is not None:
         return (
@@ -86,6 +131,10 @@ def main() -> int:
     paths = [home / ".claude.json", cwd / ".mcp.json"]
 
     prefix = find_valency_prefix(*paths)
+    if prefix is None:
+        mcp_list_output = _run_mcp_list()
+        if mcp_list_output is not None:
+            prefix = find_valency_prefix_in_mcp_list(mcp_list_output)
     output = {
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
