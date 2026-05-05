@@ -19,7 +19,7 @@ The plugin detects whatever name you pick at session start, but using the canoni
 Add the Valency marketplace and install the plugin:
 
 ```bash
-claude plugin marketplace add valencyio/valency-plugin
+claude plugin marketplace add valency-oss/valency-claude-plugin
 claude plugin install valency
 ```
 
@@ -46,8 +46,8 @@ If you connected Valency through a Claude.ai web integration instead of the CLI,
 To try the plugin without installing:
 
 ```bash
-git clone https://github.com/valencyio/valency-plugin.git
-claude --plugin-dir ./valency-plugin
+git clone https://github.com/valency-oss/valency-claude-plugin.git
+claude --plugin-dir ./valency-claude-plugin
 ```
 
 ## Usage
@@ -164,4 +164,6 @@ Returns researchers doing recent (last 12–18 months) thematically relevant wor
 
 ## License
 
-MIT
+This repo is MIT-licensed. See [LICENSE](./LICENSE).
+
+Org-wide contribution, trademark, and security policies for the `valency-oss` organization are maintained at [valency-oss/.github](https://github.com/valency-oss/.github).
