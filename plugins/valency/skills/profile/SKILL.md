@@ -13,7 +13,7 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 
 ## Tool Chain
 
-Execute these steps in order. Use the Valency MCP tools (see CLAUDE.md for tool name mapping).
+Execute these steps in order. Use the bundled Valency MCP tools, exposed as `mcp__plugin_valency_valency__<tool>`.
 
 ### Step 1: Get author profile
 

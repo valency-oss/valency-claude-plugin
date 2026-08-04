@@ -1,12 +1,17 @@
 {
   "name": "valency",
+  "displayName": "Valency",
   "description": "Search, profile, and analyze millions of research papers with semantic embeddings.",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "author": {
-    "name": "Valency Systems Inc"
+    "name": "Valency Systems Inc",
+    "email": "support@valency.io",
+    "url": "https://valency.io"
   },
   "homepage": "https://valency.io",
+  "repository": "https://github.com/valency-oss/valency-claude-plugin",
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "license": "MIT",
   "keywords": [
     "research",

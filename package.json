@@ -1,16 +1,25 @@
 {
-  "name": "valency",
-  "version": "0.2.2",
+  "name": "valency-claude-plugin",
+  "version": "0.3.0",
+  "private": true,
   "type": "module",
   "description": "Search, profile, and analyze millions of research papers with semantic embeddings.",
   "license": "MIT",
-  "author": "Valency Systems Inc",
+  "author": {
+    "name": "Valency Systems Inc",
+    "email": "support@valency.io",
+    "url": "https://valency.io"
+  },
   "homepage": "https://valency.io",
   "repository": {
     "type": "git",
-    "url": "https://github.com/valencyio/valency-plugin.git"
+    "url": "https://github.com/valency-oss/valency-claude-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/valencyio/valency-plugin/issues"
+    "url": "https://github.com/valency-oss/valency-claude-plugin/issues"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate": "claude plugin validate . --strict && claude plugin validate plugins/valency --strict"
   }
 }

@@ -1,169 +1,189 @@
 # Valency — Research Corpus Plugin for Claude Code
 
-The plugin exposes seven skills that turn natural-language questions into structured queries against millions of research papers via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
+The Valency plugin adds seven research skills and a bundled connection to the Valency MCP server. Installing the plugin is enough to register `https://labs.valency.io/mcp/`; users do not need to run `claude mcp add`.
 
-What the plugin adds is orchestration: each skill is a prescribed chain of tool calls, not a single search. `/valency:reading-list` doesn't just search an author's work. It pulls their most-cited and most-recent papers, clusters them into intellectual threads, finds similar work per thread, then flags papers that surface across multiple threads. That kind of multi-step dance is what the skills encode.
+The MCP server is registered as `plugin:valency:valency`. Its tools use the stable `mcp__plugin_valency_valency__<tool>` namespace.
 
-## Prerequisites
+## Requirements
 
-You need the Valency MCP server configured in your Claude Code session. The recommended install is:
-
-```bash
-claude mcp add --transport http valency-mcp https://labs.valency.io/mcp
-```
-
-The plugin detects whatever name you pick at session start, but using the canonical name (`valency-mcp`) keeps the permissions snippet below working as-is. See the [Valency docs](https://docs.valency.io/) for alternative setup options.
+- Claude Code. This release was validated with Claude Code 2.1.220.
+- A browser for the interactive Valency sign-in.
+- Local TCP port `33418` available while OAuth completes. The fixed port is required by the currently registered Valency OAuth client.
 
 ## Installation
 
-Add the Valency marketplace and install the plugin:
+Add the repository marketplace and install the plugin at user scope:
 
 ```bash
-claude plugin marketplace add valency-oss/valency-claude-plugin
-claude plugin install valency
+claude plugin marketplace add valency-oss/valency-claude-plugin --scope user
+claude plugin install valency@valency-claude-plugin --scope user
 ```
 
-Then restart Claude Code. The plugin persists across sessions.
+Both commands are qualified for scripting. Repeating them targets the same records: Claude reports the marketplace and plugin as already configured instead of creating duplicates. Use the update commands below when you want to refresh an existing installation.
 
-### Auto-approve MCP tool calls (recommended)
+Start or restart Claude Code after installation. When Claude reports that the Valency server needs authentication, open `/mcp` and authenticate `plugin:valency:valency`. You can start the same interactive browser flow from a terminal:
 
-By default, Claude Code will prompt you to approve each Valency tool call. Since these are read-only queries, you can auto-approve them by adding to the permissions allow list in your global settings (`~/.claude/settings.json`):
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__valency-mcp__*"
-    ]
-  }
-}
+```bash
+claude mcp login plugin:valency:valency
 ```
 
-If you connected Valency through a Claude.ai web integration instead of the CLI, replace `mcp__valency-mcp__*` with the prefix shown in the session-start notice (typically `mcp__claude_ai_Valency_Systems_Inc__*`).
+If authentication reports that port `33418` is unavailable or already in use, identify the local process holding it, stop that process if it is safe to do so, and retry. On macOS or Linux:
 
-### Alternative: one-off session
+```bash
+lsof -nP -iTCP:33418 -sTCP:LISTEN
+```
 
-To try the plugin without installing:
+On Windows PowerShell:
+
+```powershell
+Get-NetTCPConnection -LocalPort 33418 -State Listen
+```
+
+Do not change the callback port in the plugin: Valency currently requires `http://localhost:33418/callback`.
+
+### Migrating an existing manual Valency MCP connection
+
+Installing the plugin never deletes MCP configuration that you created. Before migrating, list existing servers:
+
+```bash
+claude mcp list
+```
+
+If a server might be a manually configured Valency connection, inspect it by its existing name and confirm its URL:
+
+```bash
+claude mcp get <existing-server-name>
+```
+
+Install and authenticate the plugin first, then confirm that `plugin:valency:valency` works. Keeping the manual connection is safe, but Claude may display two sets of Valency tools. If you choose to remove the old entry, use the name and scope reported by Claude:
+
+```bash
+claude mcp remove <existing-server-name> --scope <local|project|user>
+```
+
+That removal is an explicit, optional user action. The plugin does not remove or modify manual MCP entries.
+
+### Permissions
+
+Claude Code prompts before MCP tool calls unless your settings allow a specific tool. Review Valency tools individually before adding them to an allow list. Do not allow `mcp__plugin_valency_valency__*` as a wildcard: the server includes the write-capable `submit_feedback` tool, which should remain subject to explicit user authorization.
+
+## Updating
+
+Refresh the marketplace and update the installed plugin:
+
+```bash
+claude plugin marketplace update valency-claude-plugin
+claude plugin update valency@valency-claude-plugin --scope user
+```
+
+Restart Claude Code or run `/reload-plugins` to use the updated MCP configuration in an existing session.
+
+## Uninstalling
+
+Remove the user-scoped plugin:
+
+```bash
+claude plugin uninstall valency@valency-claude-plugin --scope user
+```
+
+Uninstalling removes the plugin-owned `plugin:valency:valency` registration. It does not disturb unrelated servers or a manually configured Valency server. To remove the marketplace record too:
+
+```bash
+claude plugin marketplace remove valency-claude-plugin --scope user
+```
+
+## One-off development session
+
+To load a checkout without installing it:
 
 ```bash
 git clone https://github.com/valency-oss/valency-claude-plugin.git
-claude --plugin-dir ./valency-claude-plugin
+claude --plugin-dir ./valency-claude-plugin/plugins/valency
 ```
 
 ## Usage
 
-**TL;DR:** Claude auto-invokes the right skill from natural-language questions. No specific process required. Read on if you want to trigger specific skills explicitly via slash commands.
+Claude can select these skills from natural-language questions, or you can invoke one directly.
 
-### Profile — researcher overview
+### Researcher profile
 
-```
+```text
 /valency:profile Yoshua Bengio
 ```
 
-Or just ask naturally:
+Summarizes a researcher's domains, papers, and collaborators.
 
-```
-Who is Yoshua Bengio?
-What does Sara Walker work on?
-Show me Daphne Koller's publications
-```
+### Field landscape
 
-### Landscape — field overview
-
-```
+```text
 /valency:landscape cs.LG
 /valency:landscape protein folding
 ```
 
-Or:
+Provides an overview of a category or research topic.
 
-```
-What's happening in machine learning?
-Give me an overview of single cell RNA sequencing
-Who are the top authors in cs.AI?
-```
+### Similar papers
 
-### Similar — find related papers
-
-```
+```text
 /valency:similar 1706.03762
 /valency:similar Attention Is All You Need
 ```
 
-Or:
+Finds research related to a paper ID or title.
 
-```
-Find papers similar to Attention Is All You Need
-What's related to 2301.07041?
-```
+### Publication trends
 
-### Trends — topic evolution over time
-
-```
+```text
 /valency:trends cs.AI
 /valency:trends CRISPR
-/valency:trends cs.LG, cs.CL
 ```
 
-Or:
+Shows how a topic or category has changed over time.
 
-```
-Is cs.AI growing?
-When did CRISPR research take off?
-Compare machine learning vs natural language processing trends
-```
+### Collaboration network
 
-### Network — collaboration mapping
-
-```
+```text
 /valency:network Yoshua Bengio
 ```
 
-Or:
+Maps direct and second-degree collaborators and analyzes research divergence.
 
-```
-Who does Yoshua Bengio collaborate with?
-Show me Jennifer Doudna's research network
-Find connections between researchers in protein folding
-How has David Hogg's work diverged from his coauthors?
-```
+### Researcher reading list
 
-The network skill also produces a Divergence Analysis section showing how each top collaborator's research focus has drifted from the focal author's — useful for understanding how a researcher's intellectual position has shifted relative to their closest peers.
-
-### Reading list — curated bibliography for a researcher
-
-```
+```text
 /valency:reading-list David W. Hogg
 ```
 
-Or:
+Builds a bibliography around a researcher's influential and recent work.
 
-```
-What should David Hogg be reading next?
-Build me a reading list for Yoshua Bengio
-Find adjacent literature for Sara Walker's research
-```
+### Fresh collaborators
 
-Triangulates off the author's most-cited and most-recent papers to surface 5–8 recommendations per intellectual thread, with cross-thread papers (those that connect multiple threads of the author's work) highlighted separately.
-
-### Fresh collaborators — expand a researcher's network
-
-```
+```text
 /valency:fresh-collaborators David W. Hogg
 ```
 
-Or:
+Finds researchers outside an author's established coauthor network who are publishing relevant recent work.
 
-```
-Who should David Hogg be talking to that he isn't already?
-Find new potential collaborators for Yoshua Bengio
-Who are the new faces working on stellar dynamics that Jo Bovy doesn't know yet?
+## Development and validation
+
+Run the repository tests and both strict Claude validators:
+
+```bash
+npm test
+claude plugin validate . --strict
+claude plugin validate plugins/valency --strict
 ```
 
-Returns researchers doing recent (last 12–18 months) thematically relevant work who are **not** in the focal author's existing top-100 coauthor network. Each candidate is tagged junior/senior and attributed to the theme(s) that surfaced them.
+Then inspect the component inventory:
+
+```bash
+claude --plugin-dir plugins/valency plugin details valency
+```
+
+The repository is prepared for submission to Anthropic's reviewed community marketplace. Submission and acceptance are separate processes and are not implied by this repository.
 
 ## License
 
-This repo is MIT-licensed. See [LICENSE](./LICENSE).
+This repository and the packaged plugin are MIT-licensed. See [LICENSE](./LICENSE).
 
-Org-wide contribution, trademark, and security policies for the `valency-oss` organization are maintained at [valency-oss/.github](https://github.com/valency-oss/.github).
+Organization-wide contribution, trademark, and security policies for `valency-oss` are maintained at [valency-oss/.github](https://github.com/valency-oss/.github).
