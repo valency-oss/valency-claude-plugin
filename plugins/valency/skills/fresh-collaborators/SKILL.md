@@ -17,6 +17,7 @@ Optional: a number of months for the recency window. If not specified, default t
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
 - Report a paper's year from `first_submitted`, never `datestamp`.
+- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. When recency matters, re-filter and re-sort on `first_submitted` yourself.
 - Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
 
 ## Tool Chain
@@ -51,12 +52,12 @@ Note: 100 is the maximum the tool accepts and represents the focal author's stro
 
 Call `find_papers_by_researcher` with:
 - `orcid` (string): the ORCID from Step 1, if present; otherwise omit it and pass `author` (string): the `resolved_name`
-- `limit` (integer): 10
+- `limit` (integer): 20
 - `sort_by` (string): "recency"
 
-These 10 papers represent the author's *current* intellectual direction. Abstracts are included; Step 4 reads them.
+"Recency" sorts on `datestamp`, a source-record update date, so a re-indexed 2014 paper can outrank last year's. Sort the returned papers by `first_submitted` descending yourself and keep the top 10. These represent the author's *current* intellectual direction. Abstracts are included; Step 4 reads them.
 
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 10, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. Relevance order is a name-match score, not a date, so this yields papers within the window rather than the most recent ten.
+**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 20, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. `start_date` also filters on `datestamp`, so drop anything whose `first_submitted` is before the cutoff, then sort by `first_submitted` descending and keep the top 10.
 
 ### Step 4: Identify 2–4 current themes
 
@@ -84,13 +85,15 @@ For each theme from Step 4, call `semantic_search_papers` with:
 - `enrich_citations` (boolean): false
 - `max_authors` (integer): 100
 
-Passing `start_date` restricts the server-side similarity search to papers first submitted on or after the cutoff, so every result is recent by construction — no in-memory date filtering needed. `max_authors` raises the default cap of 20 so Step 6 sees the full author list.
+`start_date` narrows the server-side similarity search, but it filters on `datestamp` (a source-record update date), so a re-indexed old paper can pass. Step 6 applies the real recency check on `first_submitted`. `max_authors` raises the default cap of 20 so Step 6 sees the full author list.
 
 If a theme returns fewer than 5 papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
 
 ### Step 6: Filter against the exclusion set
 
-For each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (normalized as described in Conventions) appears in the exclusion set built in Step 2.
+First, **drop any paper whose `first_submitted` is before the cutoff date**. Count these separately for the coverage notes.
+
+Then, for each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (normalized as described in Conventions) appears in the exclusion set built in Step 2.
 
 Also drop any paper with `authors_truncated: true`. Its author list is incomplete even at 100, so it cannot be verified against the exclusion set. Count these separately for the coverage notes.
 
@@ -142,7 +145,7 @@ Show the top 10 candidates. If fewer than 10 survived, show all of them.
 
 ### Theme Coverage Notes
 
-For each theme from Step 4, report the number of papers returned by the date-restricted search, the number dropped for a truncated author list, and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
+For each theme from Step 4, report the number of papers returned by the date-restricted search, the number dropped as older than the cutoff, the number dropped for a truncated author list, and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
 
 ### Suggested Follow-ups
 

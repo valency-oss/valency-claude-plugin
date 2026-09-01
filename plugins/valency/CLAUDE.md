@@ -22,6 +22,7 @@ Every skill follows these. They are repeated in each SKILL.md so each skill is s
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
 - Report a paper's year from `first_submitted`. `datestamp` is a source-record update date and can be years later.
+- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. When recency matters, re-filter and re-sort on `first_submitted` yourself.
 - Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
 - Pass `include_abstract: false` unless the abstract is displayed or read. Pass `enrich_citations: false` unless citation counts are displayed or used for ranking.
 

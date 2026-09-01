@@ -64,7 +64,7 @@ Call `get_keyword_trends` once per keyword with:
 - `include_abstract` (boolean): false
 - `enrich_citations` (boolean): false
 
-Results are ordered most recent first.
+Results are ordered by `datestamp`, most recent first. Present them sorted by `first_submitted`.
 
 **For a keyword**, call `search_by_abstract` with:
 - `query` (string): the keyword (the first one, for comparisons)

@@ -81,7 +81,7 @@ Call `identify_research_domains` with:
 - `limit` (integer): 10
 - `source` (string): "arxiv" if the input was a category code; otherwise the dominant source from Step 1
 
-Passing `source` matters. Without it the ranking interleaves category vocabularies from every source (arXiv codes, PubMed MeSH headings, bioRxiv labels) on different percentage bases. With it, the result is a coherent ranking within one vocabulary that shows where this field sits in its source.
+This returns source-wide domain rankings, not rankings within the field. Passing `source` matters: without it the ranking interleaves category vocabularies from every source (arXiv codes, PubMed MeSH headings, bioRxiv labels) on different percentage bases. With it, the result is a coherent ranking within one vocabulary that contextualizes where this field sits among its source's domains.
 
 ### Step 5: Get corpus metrics
 
