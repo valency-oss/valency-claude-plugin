@@ -13,6 +13,12 @@ The user provides an author name (e.g., "David W. Hogg", "Karl Friston").
 
 Optional: a number of months for the recency window. If not specified, default to **18 months**.
 
+## Conventions
+
+- Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
+- Report a paper's year from `first_submitted`, never `datestamp`.
+- Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
+
 ## Tool Chain
 
 **Date discipline:** Compute the cutoff date as `today - <window_months>`, formatted as `YYYY-MM-DD`. Use this cutoff string consistently in Step 5.
@@ -26,6 +32,7 @@ If no results are found, tell the user the author was not found. Stop here.
 
 Note from this result:
 - The `resolved_name`
+- `career_metrics.orcid`, `career_metrics.display_name`, and `career_metrics.current_institution`, if present
 - The top 5 categories (you'll use these in Step 4 to select themes)
 - The total paper count (sets context for the network size)
 
@@ -34,20 +41,22 @@ Note from this result:
 Call `find_coauthors` with:
 - `author` (string): the resolved name from Step 1
 - `limit` (integer): 100
+- `exclude_mega_collaborations` (boolean): true
 
-Build the **exclusion set**: a set of normalized names containing every `coauthor_norm` from this result, plus the focal author's `resolved_name` itself.
+Build the **exclusion set**: a set of normalized names containing every `coauthor_norm` from this result, plus the focal author's `resolved_name` and `career_metrics.display_name` (normalized).
 
-Note: 100 is the maximum the tool accepts and represents the focal author's strongest collaborators. People who have co-authored only one or two papers may still slip through as "fresh" — that is acceptable, since one-paper coauthors are weak ties and reconnecting with them is also useful.
+Note: 100 is the maximum the tool accepts and represents the focal author's strongest collaborators. Excluding papers with more than 100 authors keeps survey and consortium rosters from filling those slots. People who have co-authored only one or two papers, or only within a mega-collaboration, may still slip through as "fresh" — that is acceptable, since those are weak ties and reconnecting with them is also useful.
 
 ### Step 3: Pull the focal author's recent papers (current themes)
 
-Call `search_by_author` with:
-- `author` (string): the resolved name
+Call `find_papers_by_researcher` with:
+- `orcid` (string): the ORCID from Step 1, if present; otherwise omit it and pass `author` (string): the `resolved_name`
 - `limit` (integer): 10
-- `sort_by` (string): "relevance"
-- `strict_mode` (string): "fuzzy"
+- `sort_by` (string): "recency"
 
-The default `relevance` sort orders by recency. These 10 papers represent the author's *current* intellectual direction.
+These 10 papers represent the author's *current* intellectual direction. Abstracts are included; Step 4 reads them.
+
+**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 10, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. Relevance order is a name-match score, not a date, so this yields papers within the window rather than the most recent ten.
 
 ### Step 4: Identify 2–4 current themes
 
@@ -72,14 +81,18 @@ For each theme from Step 4, call `semantic_search_papers` with:
 - `limit` (integer): 25
 - `sort_by` (string): "relevance"
 - `include_abstract` (boolean): false
+- `enrich_citations` (boolean): false
+- `max_authors` (integer): 100
 
-Passing `start_date` restricts the server-side similarity search to papers published on or after the cutoff, so every result is recent by construction — no in-memory date filtering needed.
+Passing `start_date` restricts the server-side similarity search to papers first submitted on or after the cutoff, so every result is recent by construction — no in-memory date filtering needed. `max_authors` raises the default cap of 20 so Step 6 sees the full author list.
 
 If a theme returns fewer than 5 papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
 
 ### Step 6: Filter against the exclusion set
 
-For each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (after normalization — lowercase, strip extra whitespace) appears in the exclusion set built in Step 2.
+For each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (normalized as described in Conventions) appears in the exclusion set built in Step 2.
+
+Also drop any paper with `authors_truncated: true`. Its author list is incomplete even at 100, so it cannot be verified against the exclusion set. Count these separately for the coverage notes.
 
 This removes papers by the focal author themselves, by their direct collaborators, and by anyone in the top-100 coauthor network. What remains is, by construction, "fresh."
 
@@ -87,18 +100,26 @@ This removes papers by the focal author themselves, by their direct collaborator
 
 For each remaining paper, identify the **first author** as the primary "fresh face" candidate (other authors are noted but secondary). For each unique first author across all surviving papers:
 
-1. **Junior/senior heuristic.** Without making additional tool calls, infer junior vs senior from signals available in the paper records: number of papers in the result set (1 = likely junior; many = likely established), position of the focal-author-adjacent name in the author list, and seniority cues from coauthors. Tag each candidate `[junior]`, `[senior]`, or `[unclear]`.
+1. **Theme attribution.** Tag each candidate with which theme(s) surfaced them. Candidates surfaced by multiple themes are stronger matches and should be ranked higher.
 
-2. **Theme attribution.** Tag each candidate with which theme(s) surfaced them. Candidates surfaced by multiple themes are stronger matches and should be ranked higher.
+2. **Deduplicate.** If the same first author appears via multiple papers, merge into a single entry and list all surfacing papers.
 
-3. **Deduplicate.** If the same first author appears via multiple papers, merge into a single entry and list all surfacing papers.
+3. **Junior/senior heuristic.** Without additional tool calls, infer junior vs senior from signals in the paper records: number of papers in the result set (1 = likely junior; many = likely established), and seniority cues from coauthors. Tag each candidate `[junior]`, `[senior]`, or `[unclear]`.
+
+### Step 8: Verify the top candidates
+
+For each of the top 5 candidates after ranking, call `get_author_identity` with:
+- `author` (string): the candidate's name as it appears on the paper
+- `paper_id` (string): the ID of one surfacing paper
+
+The `paper_id` hint pins the lookup to that paper's author list. When `career_metrics` comes back, record `h_index`, `works_count`, and `current_institution`. They give a firmer read than the Step 7 heuristic: a handful of works suggests early career, a long record suggests established. Update the tag accordingly. If the call returns `candidates` instead of a single identity, or no `career_metrics`, keep the heuristic tag.
 
 ## Output Format
 
 ### Author Summary
 
 A short block:
-- **Focal author**: name (resolved), total papers, primary domains
+- **Focal author**: name (resolved), institution if known, total papers, primary domains
 - **Existing coauthor network size**: total from Step 2 (note that only the top 100 are in the exclusion set)
 - **Recency window**: e.g. "Last 18 months (cutoff: 2024-10-07)"
 - **Themes searched**: bullet list of the 2–4 themes from Step 4
@@ -111,8 +132,9 @@ For each candidate:
 
 #### N. Author Name `[junior|senior|unclear]`
 
+- **Institution / h-index**: from Step 8 when available
 - **Surfaced by themes**: theme A; theme B (if multiple)
-- **Surfacing paper(s)**: Title (paper ID), year, category
+- **Surfacing paper(s)**: [Title](url) (paper ID), year (from `first_submitted`), category
 - **Why fresh**: explicit confirmation that this person is **not** in the focal author's top-100 coauthor list
 - **Why interesting**: one sentence on the connection to the focal author's current work
 
@@ -120,7 +142,7 @@ Show the top 10 candidates. If fewer than 10 survived, show all of them.
 
 ### Theme Coverage Notes
 
-For each theme from Step 4, report the number of papers returned by the date-restricted search and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
+For each theme from Step 4, report the number of papers returned by the date-restricted search, the number dropped for a truncated author list, and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
 
 ### Suggested Follow-ups
 

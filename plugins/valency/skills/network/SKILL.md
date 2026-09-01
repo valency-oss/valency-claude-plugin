@@ -11,6 +11,11 @@ Map a researcher's collaboration network.
 
 The user provides an author name (e.g., "Yoshua Bengio").
 
+## Conventions
+
+- Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
+- Report a paper's year from `first_submitted`, never `datestamp`.
+
 ## Tool Chain
 
 ### Step 1: Get author baseline
@@ -20,21 +25,23 @@ Call `get_author_profile` with:
 
 If no results are found, tell the user the author was not found and suggest checking the spelling. Stop here.
 
-Note the author's top categories from this result — you'll need them to identify cross-domain bridges.
+Note the author's top categories from this result — you'll need them to identify cross-domain bridges. Also note `career_metrics` (`h_index`, `works_count`, `current_institution`) if present.
 
 ### Step 2: Get direct collaborators
 
 Call `find_coauthors` with:
 - `author` (string): the author name
 - `limit` (integer): 20
+- `exclude_mega_collaborations` (boolean): true
 
-This returns collaborators ranked by co-publication count. Note the top 5 collaborators for the next step. Use the `coauthor_norm` field (normalized name) when passing names to subsequent tool calls.
+This returns collaborators ranked by co-publication count, ignoring papers with more than 100 authors so survey and consortium rosters do not dominate the network. Note the top 5 collaborators for the next step. Use the `coauthor_norm` field (normalized name) when passing names to subsequent tool calls.
 
 ### Step 3: Get second-degree connections
 
 For each of the top 5 collaborators from Step 2, call `find_coauthors` with:
 - `author` (string): the collaborator's normalized name (`coauthor_norm`)
 - `limit` (integer): 10
+- `exclude_mega_collaborations` (boolean): true
 
 Collect all second-degree collaborators. Remove any that are already direct collaborators of the focal author (from Step 2) or the focal author themselves.
 
@@ -43,14 +50,14 @@ Collect all second-degree collaborators. Remove any that are already direct coll
 Call `compare_authors` with:
 - `authors` (array of strings): a JSON array containing the focal author name and up to 4 of their top collaborators (max 5 total, tool requires 2-10), e.g. `["Yoshua Bengio", "Ian Goodfellow", "Aaron Courville"]`
 
-This returns side-by-side profiles with category overlap information. The result also gives you everything you need to compute divergence: each author's category distribution as a list of `{category, count}` pairs, plus a `shared_categories` array.
+This returns side-by-side profiles with category overlap information. Each profile carries a `categories` list of `{category, count}` pairs, a `timeline`, and `career_metrics` when the upstream graph knows the author, plus a top-level `shared_categories` array. That is everything needed to compute divergence.
 
 ### Step 5: Compute divergence (no tool call)
 
 For each top collaborator from Step 4, compute a **divergence characterization** from the `compare_authors` result. For each collaborator, determine:
 
 - **Concentration delta**: convert each author's category counts to percentages of their total, then identify the top 1–2 categories where the collaborator's percentage exceeds the focal author's by ≥ 10 percentage points (collaborator is *more concentrated* there) and the top 1–2 categories where the focal author's percentage exceeds the collaborator's by ≥ 10 points (focal author is *more concentrated* there).
-- **Productivity ratio**: collaborator's total papers ÷ focal author's total papers. Note when this is dramatically above (>2x) or below (<0.5x) parity.
+- **Productivity ratio**: collaborator's total works ÷ focal author's total works. Use `career_metrics.works_count` for both when present, since corpus counts cover only part of a career; otherwise use `summary.total_papers`. Note when this is dramatically above (>2x) or below (<0.5x) parity.
 - **Career-phase signal**: compare the publication timelines. Note when the collaborator's output has accelerated, decelerated, or shifted (pivoted to a new dominant category) relative to the focal author over the last 3 years.
 
 Synthesize these into a one-sentence characterization per collaborator. Examples:
@@ -62,7 +69,7 @@ Synthesize these into a one-sentence characterization per collaborator. Examples
 ### Network Summary
 
 A brief paragraph:
-- Author name and total direct collaborators count
+- Author name, current institution (if known), and total direct collaborators count
 - Primary research domains (from Step 1)
 
 ### Direct Collaborators
@@ -97,7 +104,7 @@ For each top collaborator compared in Step 4, present the divergence characteriz
 **Collaborator Name** (N shared papers)
 - *Characterization*: the one-sentence synthesis from Step 5
 - *Concentration delta*: which categories each is more concentrated in (numbers in percentage points)
-- *Productivity*: papers ratio vs focal author
+- *Productivity*: works ratio vs focal author (upstream works when available, corpus papers otherwise)
 - *Trajectory*: career-phase signal over the last ~3 years
 
 If all top collaborators have nearly-identical category distributions and timelines, note that the network is intellectually homogeneous and divergence analysis is uninformative — but still show the table for completeness.

@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 DOCS_URL = "https://docs.valency.io/"
 VALENCY_DOMAIN = "valency.io"
 MCP_LIST_TIMEOUT_SECONDS = 10.0
-_NAME_SEPARATOR_RE = re.compile(r"[ .:]+")
+_NAME_SEPARATOR_RE = re.compile(r"[^A-Za-z0-9_-]+")
 _MCP_LIST_LINE_RE = re.compile(r"^(?P<name>.+?):\s+(?P<url>https?://\S+)")
 _SESSION_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_-]")
 
@@ -116,7 +116,10 @@ def write_cached_prefix(path: Path, prefix: str | None) -> None:
 
 def display_name_to_prefix(name: str) -> str:
     """Convert an MCP server display name (as shown by `claude mcp list`) to the
-    `mcp__<sanitized>__` prefix Claude Code uses internally for that server."""
+    `mcp__<sanitized>__` prefix Claude Code uses internally for that server.
+
+    Every run of characters outside [A-Za-z0-9_-] collapses to one underscore,
+    so `claude.ai Valency (2)` becomes `mcp__claude_ai_Valency_2__`."""
     sanitized = _NAME_SEPARATOR_RE.sub("_", name).strip("_")
     return f"mcp__{sanitized}__"
 

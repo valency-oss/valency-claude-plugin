@@ -190,6 +190,18 @@ def test_finds_valency_when_display_name_contains_colon() -> None:
     )
 
 
+def test_finds_first_of_two_valency_connectors_in_mcp_list_output() -> None:
+    output = (
+        "claude.ai Valency: https://mcp.valency.io - \u2714 Connected\n"
+        "claude.ai Valency (2): https://labs.valency.io/mcp - \u2714 Connected\n"
+    )
+    assert find_valency_prefix_in_mcp_list(output) == "mcp__claude_ai_Valency__"
+
+
+def test_display_name_drops_parenthesized_suffix_punctuation() -> None:
+    assert display_name_to_prefix("claude.ai Valency (2)") == "mcp__claude_ai_Valency_2__"
+
+
 def test_returns_none_when_mcp_list_has_no_valency_entry() -> None:
     output = "claude.ai Slack: https://mcp.slack.com/mcp - ✓ Connected\n"
     assert find_valency_prefix_in_mcp_list(output) is None
@@ -233,6 +245,11 @@ def test_file_scan_accepts_apex_and_subdomain(tmp_path: Path) -> None:
         },
     )
     assert find_valency_prefix(config) == "mcp__apex__"
+    _write_json(
+        config,
+        {"mcpServers": {"sub": {"type": "http", "url": "https://mcp.valency.io"}}},
+    )
+    assert find_valency_prefix(config) == "mcp__sub__"
 
 
 def test_mcp_list_rejects_lookalike_hostnames() -> None:

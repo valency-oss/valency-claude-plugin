@@ -13,6 +13,14 @@ The user provides either:
 - An arXiv category code (e.g., `cs.LG`, `q-bio.BM`, `astro-ph.CO`) — recognized by the pattern of a short prefix, a dot, and a short suffix
 - Free text describing a research area (e.g., "protein folding", "large language models")
 
+The corpus spans seven sources (pubmed, arxiv, biorxiv, medrxiv, psyarxiv, socarxiv, eartharxiv) and PubMed holds most papers. An arXiv category code restricts every call to arXiv. Free text searches all sources.
+
+## Conventions
+
+- Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
+- Report a paper's year from `first_submitted`, never `datestamp`.
+- This skill does not display abstracts, so pass `include_abstract: false` on search calls.
+
 ## Tool Chain
 
 ### Step 1: Find papers in the field
@@ -23,6 +31,9 @@ Call `search_by_category` with:
 - `category` (string): the category code
 - `limit` (integer): 10
 - `sort_by` (string): "citations"
+- `include_abstract` (boolean): false
+
+Sorting a large category by citations can take several seconds. Wait for it.
 
 **If the input is free text:**
 
@@ -30,8 +41,11 @@ Call `semantic_search_papers` with:
 - `query` (string): the user's input
 - `limit` (integer): 10
 - `sort_by` (string): "citations"
+- `include_abstract` (boolean): false
 
 If no results are found, tell the user and suggest trying different terms or checking category codes with a broader search. Stop here.
+
+Every paper carries a `source` field. For free-text input, note the **dominant source** among the results (the source with the most papers). Step 4 uses it.
 
 ### Step 2: Get publication trends
 
@@ -49,34 +63,40 @@ Call `get_keyword_trends` with:
 - `granularity` (string): "year"
 - `format` (string): "compact"
 
+Keyword counts span all sources. Sum the yearly counts to get the total matching papers.
+
 ### Step 3: Identify top authors
 
+**Category input only.** If the input was free text, skip this step and note that top-author ranking requires a category code.
+
 Call `identify_prolific_authors` with:
-- `category` (string): the category code (if input was a category), otherwise omit
-- `limit` (integer): 10
+- `category` (string): the category code
+- `limit` (integer): 20
 
-Note: if the input was free text and no category was identified, skip this step and note that top-author ranking requires a category code.
-
-This tool can time out for very large categories (e.g., cs.LG). If it times out, skip this section in the output and note that author ranking was unavailable due to the size of the category.
+Rows are author-name strings, not disambiguated people. Each row carries `disambiguation_status`. Drop rows with status `likely_aggregation` or `severe_aggregation` (a common name covering many researchers), then keep the first 10 that remain. Mark rows with status `ambiguous` as "(name may cover several researchers)". Requesting 20 leaves room to backfill after filtering.
 
 ### Step 4: Identify subdomains
 
 Call `identify_research_domains` with:
 - `limit` (integer): 10
+- `source` (string): "arxiv" if the input was a category code; otherwise the dominant source from Step 1
 
-Note: this returns corpus-wide domain rankings. If the input was a category, the results contextualize where this category sits within the broader landscape.
+Passing `source` matters. Without it the ranking interleaves category vocabularies from every source (arXiv codes, PubMed MeSH headings, bioRxiv labels) on different percentage bases. With it, the result is a coherent ranking within one vocabulary that shows where this field sits in its source.
 
 ### Step 5: Get corpus metrics
 
-Call `analyze_corpus_metrics` with:
-- `category` (string): the category code (if input was a category), otherwise omit
+**Category input only.** Call `analyze_corpus_metrics` with:
+- `category` (string): the category code
+
+For free text, skip this step. The Step 2 sum stands in for the total.
 
 ## Output Format
 
 ### Field Summary
 
 A brief paragraph covering:
-- Total papers found (from Step 5 or Step 1 result count)
+- Total papers (Step 5 for a category; the Step 2 sum for free text)
+- Which sources are covered (arXiv only for a category; all sources for free text, naming the dominant one)
 - Date range of publications
 - Growth trajectory (from Step 2 — is volume increasing, stable, or declining?)
 
@@ -91,18 +111,19 @@ A year-by-year table from Step 2:
 
 ### Top Authors
 
-A numbered list of the top 10 authors from Step 3 with their paper counts.
+**Category input only.** A numbered list of up to 10 authors from Step 3 with their paper counts. Note how many rows were dropped as name-collision aggregates.
 
 ### Subdomain Breakdown
 
-A table of the top research domains from Step 4, giving context for how this field relates to the broader corpus.
+A table of the top research domains from Step 4, labelled with the source they were ranked within.
 
-### Notable Recent Papers
+### Notable Papers
 
-List 5 papers from Step 1 (the most-cited papers found). For each:
-- Title (with paper ID)
+List 5 of the most-cited papers from Step 1. For each:
+- [Title](url) (paper ID)
 - Authors (first 3, then "et al." if more)
-- Year
+- Year (from `first_submitted`)
+- Citations
 - Category
 
 ### Observations

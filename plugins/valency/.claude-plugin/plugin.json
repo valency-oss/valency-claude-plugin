@@ -1,7 +1,7 @@
 {
   "name": "valency",
   "description": "Search, profile, and analyze millions of research papers with semantic embeddings.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": {
     "name": "Valency Systems Inc"
   },
@@ -15,6 +15,9 @@
     "pubmed",
     "biorxiv",
     "medrxiv",
+    "psyarxiv",
+    "socarxiv",
+    "eartharxiv",
     "literature-review",
     "semantic-search"
   ]

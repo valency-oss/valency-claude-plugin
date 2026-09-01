@@ -11,44 +11,51 @@ Build a comprehensive profile for the given researcher.
 
 The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walker").
 
+## Conventions
+
+- Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
+- Report a paper's year from `first_submitted`. `datestamp` is a source-record update date and can be years later.
+- This skill does not display abstracts, so pass `include_abstract: false` on search calls.
+
 ## Tool Chain
 
-Execute these steps in order. Use the Valency MCP tools (see CLAUDE.md for tool name mapping).
+Execute these steps in order.
 
 ### Step 1: Get author profile
 
 Call `get_author_profile` with:
 - `author` (string): the author name provided by the user
 
-This returns summary stats including top categories, publication timeline, co-author count, and total papers.
+This returns `resolved_name`, a `summary` (papers in corpus, first and last paper dates, unique coauthor count), a `categories` list of `{category, count}` pairs, a year-by-year `timeline`, and `career_metrics` from the upstream citation graph: `display_name`, `orcid`, `h_index`, `works_count`, `cited_by_count`, `affiliations`, and `current_institution`. `career_metrics` may be absent for authors the graph does not know.
 
 If no results are found, tell the user the author was not found and suggest checking the spelling or trying a partial name. Stop here.
 
-### Step 2: Get full publication list
+**Fragmented names.** Counts in this response are keyed to one exact name string. If `warnings` mentions fragmentation across name variants and `career_metrics.orcid` is present, take the ORCID path in Step 2 so the paper list covers every variant.
 
-Call `search_by_author` with:
+### Step 2: Get top papers
+
+If Step 1 flagged fragmentation and returned an ORCID, call `find_papers_by_researcher` with:
+- `orcid` (string): the ORCID from `career_metrics`
+- `limit` (integer): 10
+- `sort_by` (string): "citations"
+
+Otherwise call `search_by_author` with:
 - `author` (string): the author name
 - `limit` (integer): 10
 - `sort_by` (string): "citations"
 - `strict_mode` (string): "fuzzy"
+- `include_abstract` (boolean): false
 
-This returns the author's top papers sorted by citation count.
+Either call returns the author's top papers sorted by citation count.
 
-### Step 3: Get research domain distribution
-
-Call `batch_author_categories` with:
-- `authors` (array of strings): a JSON array containing the author name, e.g. `["David W. Hogg"]`
-- `max_categories` (integer): 10
-
-This returns the category distribution for the author's publications.
-
-### Step 4: Get top collaborators
+### Step 3: Get top collaborators
 
 Call `find_coauthors` with:
 - `author` (string): the author name
 - `limit` (integer): 10
+- `exclude_mega_collaborations` (boolean): true
 
-This returns the author's most frequent collaborators with co-publication counts.
+This returns the author's most frequent collaborators with co-publication counts. Excluding papers with more than 100 authors keeps survey and consortium rosters from crowding out real collaborators.
 
 ## Output Format
 
@@ -56,15 +63,18 @@ Present the results in this structure:
 
 ### Summary
 
-A brief block with:
-- **Name**: full name as it appears in the corpus
-- **Total papers**: count from Step 1
-- **Active years**: first paper year to last paper year
-- **Primary domains**: top 3 categories from Step 3
+A brief block:
+- **Name**: `career_metrics.display_name` if present, otherwise the name as it appears in the corpus
+- **Institution**: `career_metrics.current_institution` (omit if absent)
+- **ORCID**: from `career_metrics` (omit if absent)
+- **h-index**: from `career_metrics` (omit if absent)
+- **Papers in corpus**: `summary.total_papers`. When `career_metrics.works_count` is present, add "of N works upstream" so the reader can see how much of the career the corpus covers.
+- **Active years in corpus**: `summary.first_paper` year to `summary.last_paper` year. Say "in corpus": coverage starts at each source's earliest date (arXiv: 2007), not at the author's first paper.
+- **Primary domains**: top 3 categories from Step 1
 
 ### Research Domains
 
-A table of the top 5 categories from Step 3:
+A table of the top 5 categories from Step 1:
 
 | Category | Papers |
 |----------|--------|
@@ -74,13 +84,14 @@ A table of the top 5 categories from Step 3:
 ### Top Papers
 
 A numbered list of up to 10 papers from Step 2. For each paper show:
-- Title (with paper ID)
-- Year
+- [Title](url) (paper ID)
+- Year (from `first_submitted`)
+- Citations (`citation_count`; omit if null)
 - Categories
 
 ### Top Collaborators
 
-A table of up to 5 collaborators from Step 4:
+A table of up to 5 collaborators from Step 3:
 
 | Collaborator | Co-authored papers |
 |--------------|-------------------|
@@ -90,4 +101,5 @@ A table of up to 5 collaborators from Step 4:
 ### Suggested Follow-ups
 
 - `/valency:network <author_name>` — map their collaboration network
+- `/valency:reading-list <author_name>` — a curated bibliography around their work
 - `/valency:similar <paper_id>` — find papers similar to their top work (use the ID of their most-cited paper)

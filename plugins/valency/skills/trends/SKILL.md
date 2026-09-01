@@ -14,6 +14,14 @@ The user provides one of:
 - A keyword or phrase (e.g., "transformer", "CRISPR")
 - Multiple categories or keywords separated by commas or "vs" (e.g., "cs.LG, cs.CL" or "transformers vs RNNs") — for comparison
 
+Optionally, a source name (pubmed, arxiv, biorxiv, medrxiv, psyarxiv, socarxiv, eartharxiv). Category trends are arXiv-only by construction. Keyword trends span all seven sources unless a source is given, and PubMed dominates those counts. If the user names a source, pass `source` on every call below.
+
+## Conventions
+
+- Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
+- Report a paper's year from `first_submitted`, never `datestamp`.
+- This skill does not display abstracts or citation counts, so pass `include_abstract: false` and `enrich_citations: false` on search calls.
+
 ## Tool Chain
 
 ### Step 1: Get trend data
@@ -34,12 +42,12 @@ Call `get_keyword_trends` with:
 
 **If the input contains multiple categories** (comma-separated or "vs"):
 
-Call `get_publication_trends` individually for each category with:
-- `category` (string): each category code
+Call `get_publication_trends_batch` once with:
+- `categories` (array of strings): all category codes, e.g. `["cs.LG", "cs.CL"]`
 - `granularity` (string): "year"
 - `format` (string): "compact"
 
-Note: `get_publication_trends_batch` exists but is unreliable and frequently times out. Use individual calls instead and combine the results into a comparison table.
+The response holds one entry per category under `data`. If `too_broad_categories` lists any of them, call `get_publication_trends` individually for those with the same `granularity` and `format`.
 
 **If the input contains multiple keywords** (comma-separated or "vs"):
 
@@ -50,10 +58,21 @@ Call `get_keyword_trends` once per keyword with:
 
 ### Step 2: Get recent representative papers
 
-Call `search_by_abstract` with:
-- `query` (string): the keyword or category name (use the human-readable name for categories, e.g., "machine learning" for cs.LG)
+**For a category code**, call `search_by_category` with:
+- `category` (string): the category code (the first one, for comparisons)
 - `limit` (integer): 5
-- `sort_by` (string): "relevance"
+- `include_abstract` (boolean): false
+- `enrich_citations` (boolean): false
+
+Results are ordered most recent first.
+
+**For a keyword**, call `search_by_abstract` with:
+- `query` (string): the keyword (the first one, for comparisons)
+- `limit` (integer): 5
+- `include_abstract` (boolean): false
+- `enrich_citations` (boolean): false
+
+If the keyword has unrelated meanings in other fields (e.g., "transformer" in electrical engineering), add `phrase_mode: true` for multi-word phrases, or `exclude_categories` (array of strings) to drop the unrelated domains.
 
 ## Output Format
 
@@ -76,17 +95,18 @@ Call `search_by_abstract` with:
 ### Narrative Summary
 
 A 3-5 sentence narrative covering:
+- Which sources the counts cover (arXiv for categories; all sources, or the one named, for keywords)
 - When the field or topic first appeared in the corpus
 - Key inflection points (years where volume jumped or dropped significantly)
-- Current trajectory (accelerating, plateauing, declining)
+- Current trajectory (accelerating, plateauing, declining). The current year is partial, so do not read a lower count for it as a decline.
 - For comparisons: which topic is growing faster and when they diverged
 
 ### Representative Recent Papers
 
 A numbered list of 3-5 papers from Step 2. For each:
-- Title (with paper ID)
+- [Title](url) (paper ID)
 - Authors (first 3, then "et al.")
-- Year
+- Year (from `first_submitted`)
 
 ### Suggested Follow-ups
 
