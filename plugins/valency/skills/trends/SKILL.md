@@ -3,9 +3,9 @@ name: trends
 description: "Use when the user asks how a research topic has changed over time, wants publication volume trends, asks 'is X growing', 'when did X take off', or wants to compare the trajectories of two fields. Triggers on trend, growth, or timeline questions about research areas. Also invokable as /valency:trends <keyword_or_category>."
 ---
 
-# Publication Trends
+# Research Record Trends
 
-Show how a topic or category has evolved over time.
+Show how category records or abstract-keyword matches change over time in the corpus.
 
 ## Input
 
@@ -47,7 +47,7 @@ Call `get_publication_trends_batch` once with:
 - `granularity` (string): "year"
 - `format` (string): "compact"
 
-The response holds one entry per category under `data`. If `too_broad_categories` lists any of them, call `get_publication_trends` individually for those with the same `granularity` and `format`.
+The response holds one entry per category under `data`. A category in `too_broad_categories` has an in-place `CATEGORY_TOO_BROAD` drill-down rather than a series. Show its `direct_subcategories` and leave that series unavailable until the user selects a narrower category; an individual retry uses the same aggregation and will not remove the breadth limit.
 
 **If the input contains multiple keywords** (comma-separated or "vs"):
 
@@ -55,6 +55,8 @@ Call `get_keyword_trends` once per keyword with:
 - `query` (string): each keyword
 - `granularity` (string): "year"
 - `format` (string): "compact"
+
+Category series count latest records in a resolved hierarchical category. Keyword series count records whose abstract full-text index lexically matches the query. Both are grouped by `datestamp`; neither is a formal publication-count series. Step 1 is complete when every requested input has a series, a drill-down, an empty-result label, or an error.
 
 ### Step 2: Get recent representative papers
 
@@ -76,18 +78,18 @@ If the keyword has unrelated meanings in other fields (e.g., "transformer" in el
 
 ## Output Format
 
-### Trend Data
+### Record Activity
 
 **For single input:** a year-by-year table:
 
-| Year | Papers |
-|------|--------|
+| Year | Matching records |
+|---|---:|
 | 2018 | 500    |
 | ...  | ...    |
 
 **For comparisons:** a side-by-side table:
 
-| Year | cs.LG  | cs.CL  |
+| Year | Matching records: cs.LG | Matching records: cs.CL |
 |------|--------|--------|
 | 2018 | 500    | 300    |
 | ...  | ...    | ...    |
@@ -95,15 +97,15 @@ If the keyword has unrelated meanings in other fields (e.g., "transformer" in el
 ### Narrative Summary
 
 A 3-5 sentence narrative covering:
-- Which sources the counts cover (arXiv for categories; all sources, or the one named, for keywords)
-- When the field or topic first appeared in the corpus
-- Key inflection points (years where volume jumped or dropped significantly)
-- Current trajectory (accelerating, plateauing, declining). The current year is partial, so do not read a lower count for it as a decline.
-- For comparisons: which topic is growing faster and when they diverged
+- Which sources and matching semantics each series covers
+- The first observed matching record in this corpus, not the topic's invention or first publication
+- Inflection points where matching-record activity changed significantly
+- The current record-activity trajectory. The current year is partial, so do not read a lower count for it as a decline.
+- For comparisons: when the observed matching-record trajectories diverged, preserving each series' scope
 
-### Representative Recent Papers
+### Representative Record-Recent Matches
 
-A numbered list of 3-5 papers from Step 2. For each:
+A numbered list of 3-5 papers from Step 2. State that `datestamp` selected the record-recency window. For each:
 - [Title](url) (paper ID)
 - Authors (first 3, then "et al.")
 - Source-aware date label

@@ -47,7 +47,7 @@ If no results are found, tell the user and suggest trying different terms or che
 
 Every paper carries a `source` field. For free-text input, note the **dominant source** among the results (the source with the most papers). Step 4 uses it.
 
-### Step 2: Get publication trends
+### Step 2: Measure record activity
 
 **If the input is a category code:**
 
@@ -63,7 +63,9 @@ Call `get_keyword_trends` with:
 - `granularity` (string): "year"
 - `format` (string): "compact"
 
-Keyword counts span all sources. Sum the yearly counts to get the total matching papers.
+Keyword counts span all sources. Sum the yearly counts to get the total matching records.
+
+Category trends count latest records in the resolved hierarchical category. Keyword trends count records whose abstract full-text index lexically matches the query. Both group by `datestamp`, so describe them as record activity rather than publication counts.
 
 ### Step 3: Identify top authors
 
@@ -95,16 +97,16 @@ For free text, skip this step. The Step 2 sum stands in for the total.
 ### Field Summary
 
 A brief paragraph covering:
-- Total papers (Step 5 for a category; the Step 2 sum for free text)
+- Total category records from Step 5, or total abstract-keyword matches from the Step 2 sum for free text
 - Which sources are covered (arXiv only for a category; all sources for free text, naming the dominant one)
-- Date range of publications
-- Growth trajectory (from Step 2 — is volume increasing, stable, or declining?)
+- Source record/update date range
+- Record-activity trajectory from Step 2
 
-### Publication Trends
+### Record Activity
 
 A year-by-year table from Step 2:
 
-| Year | Papers |
+| Year | Matching records |
 |------|--------|
 | 2020 | 1,234  |
 | ...  | ...    |
@@ -129,7 +131,7 @@ List 5 of the most-cited papers from Step 1. For each:
 ### Observations
 
 2-3 brief observations drawn from the data. Examples:
-- "Publication volume has doubled since 2021"
+- "Matching-record activity has doubled since 2021"
 - "The field is concentrated in 2-3 subdomain categories"
 - "Author X dominates with 3x more papers than the next most prolific"
 
