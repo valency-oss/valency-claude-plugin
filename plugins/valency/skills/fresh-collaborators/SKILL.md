@@ -22,7 +22,7 @@ Optional: a number of months for the recency window. If not specified, default t
 
 ## Tool Chain
 
-**Date discipline:** Compute the cutoff date as `today - <window_months>`, formatted as `YYYY-MM-DD`. Use this cutoff string consistently in Step 5.
+**Date discipline:** Compute the cutoff date as `today - <window_months>`, formatted as `YYYY-MM-DD`. Use this cutoff consistently in Steps 4–6.
 
 ### Step 1: Resolve the focal researcher
 
@@ -57,13 +57,13 @@ Call `find_papers_by_researcher` with the strongest key from Step 1:
 - `limit` (integer): 20
 - `sort_by` (string): "recency"
 
-Inspect `candidates`, `disambiguation_status`, `warnings`, and every paper's `match_type`. Resolve reappearing candidates before continuing; stop on an unverifiable result. `"recency"` orders papers by `datestamp`, so treat the result as record-recent rather than publication-recent. Keep the first 10 for now; Step 4 applies the requested freshness window before calling them current. Abstracts are included because Step 4 reads them.
+Inspect `candidates`, `disambiguation_status`, `warnings`, and every paper's `match_type`. Resolve reappearing candidates before continuing; stop on an unverifiable result. `"recency"` orders papers by `datestamp`, so pass all returned papers to Step 4 for the requested freshness check. Abstracts are included because Step 4 reads them.
 
 ### Step 4: Identify 2–4 current themes
 
-From the Step 3 papers, identify **2 to 4 distinct themes** that characterize the author's recent work. A theme is a short natural-language phrase (5–12 words) suitable as a semantic search query — not a category code.
+A focal paper is usable for current themes only when it comes from arXiv, bioRxiv, or medRxiv and has a usable `first_submitted` satisfying `cutoff <= first_submitted <= today`. From the usable papers, identify **2 to 4 distinct themes** that characterize the author's in-window work. A theme is a short natural-language phrase (5–12 words) suitable as a semantic search query, not a category code.
 
-Construct themes by reading the recent paper titles and abstracts. For each theme, you should be able to point to at least two of the recent papers as evidence. If the recent papers cluster tightly, 2 themes is fine; if they span disparate topics, use up to 4.
+Construct themes from substantive titles and abstracts. Every theme must be supported by at least two usable focal papers. If fewer than two usable papers remain, report that no in-window focal activity grounds current themes and stop. If only two defensible themes exist, use two.
 
 Examples of well-formed themes:
 - "Bayesian experimental design for cosmological survey forecasting"
@@ -73,6 +73,8 @@ Examples of well-formed themes:
 Bad themes (too narrow or too broad):
 - "stars" (too broad)
 - "Section 4 of the 2025 paper on REACH 21cm calibration" (too narrow / not a search query)
+
+This step is complete when every search theme cites at least two in-window focal papers as evidence.
 
 ### Step 5: Search for recent work in each theme
 
