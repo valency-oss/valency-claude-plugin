@@ -20,44 +20,41 @@ The user provides an author name (e.g., "David W. Hogg", "Yoshua Bengio", "Jenni
 
 ## Tool Chain
 
-### Step 1: Verify the author exists
+### Step 1: Resolve the focal researcher
 
-Call `get_author_profile` with:
+Call `get_author_identity` with:
 - `author` (string): the author name provided by the user
 
-If no results are found, tell the user the author was not found and suggest checking the spelling or trying a partial name. Stop here.
+Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Stop if the identity remains unverifiable.
 
-Note the author's top categories from this result — you'll use them later to interpret which themes the reading list is covering. Also note:
-- `resolved_name` — use it when filtering self-citations
-- `career_metrics.orcid` and `career_metrics.display_name`, if present — the ORCID gives identity-resolved paper lookups in Steps 2 and 3, and the display name is a second form to match when filtering self-citations
+Use non-null `career_metrics.display_name` as the display name. For researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
 
-### Step 2: Get top-cited papers (career anchors)
+Call `get_author_profile` with the selected display name and the resolved ORCID when present. Record `resolved_name`, `stats_source`, warnings, corpus paper count, and source-specific categories.
 
-Call `find_papers_by_researcher` with:
-- `orcid` (string): the ORCID from Step 1, if present; otherwise omit it and pass `author` (string): the `resolved_name`
+This step is complete when one researcher has been selected, no candidate list remains unresolved, and the corpus profile's provenance is recorded.
+
+### Step 2: Get citation-ranked papers (career anchors)
+
+Call `find_papers_by_researcher` with the strongest key from Step 1 and:
 - `limit` (integer): 5
 - `sort_by` (string): "citations"
 
-These are the author's most influential works — they anchor the "what defined their career so far" threads.
+Inspect `candidates`, `disambiguation_status`, `warnings`, `returned_count`, and citation coverage. Resolve any reappearing candidates before using the papers. Treat the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited work when coverage is incomplete.
 
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the author name), `limit` 5, `sort_by` "citations", `strict_mode` "fuzzy".
+### Step 3: Get record-recent papers (current corpus direction)
 
-### Step 3: Get recent papers (current direction)
-
-Call `find_papers_by_researcher` with the same identity as Step 2 and:
+Call `find_papers_by_researcher` with the same identity and:
 - `limit` (integer): 15
 - `sort_by` (string): "recency"
 
-`"recency"` orders papers by `datestamp`. Keep the first 5 and describe them as the author's *record-recent* corpus work, not publication chronology.
-
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the author name), `limit` 15, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to three years before today in `YYYY-MM-DD`. Treat `start_date` as a `datestamp` filter and keep the first 5 returned papers.
+Inspect the same attribution fields as Step 2. `"recency"` orders papers by `datestamp`; keep the first 5 and describe them as the researcher's record-recent corpus work, not publication chronology.
 
 ### Step 4: Select 3–5 representative seed papers
 
 From the combined Step 2 + Step 3 results, select 3 to 5 **seed papers** that best represent the author's distinct intellectual threads:
 
-- Always include the single most-cited paper (career anchor).
-- Always include the most recent paper that has a substantive abstract (current direction).
+- Always include the highest citation-ranked returned paper, with its coverage qualification.
+- Always include the first record-recent paper with a substantive abstract.
 - Fill the remaining slots by picking papers whose category lists differ — i.e. cover different threads of the author's work, not five papers in the same subfield.
 
 If two papers have nearly identical category lists and similar topics, pick only one.
@@ -85,9 +82,10 @@ After all `find_similar_papers` calls complete:
 ### Researcher Summary
 
 A short block:
-- **Name**: `career_metrics.display_name` if present, otherwise the name as it appears in the corpus
-- **Papers in corpus**: from Step 1
-- **Primary domains**: top 3 categories from Step 1
+- **Name**: selected display name
+- **Identity**: ORCID when present; otherwise the returned disambiguation qualification
+- **Papers in corpus**: from the Step 1 profile, labeled with `stats_source`
+- **Primary domains**: top 3 source-specific categories from the Step 1 profile
 
 ### Reading List by Thread
 

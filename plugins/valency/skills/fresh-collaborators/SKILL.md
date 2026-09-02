@@ -24,23 +24,25 @@ Optional: a number of months for the recency window. If not specified, default t
 
 **Date discipline:** Compute the cutoff date as `today - <window_months>`, formatted as `YYYY-MM-DD`. Use this cutoff string consistently in Step 5.
 
-### Step 1: Verify the author exists
+### Step 1: Resolve the focal researcher
 
-Call `get_author_profile` with:
+Call `get_author_identity` with:
 - `author` (string): the author name
 
-If no results are found, tell the user the author was not found. Stop here.
+Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). If the identity remains unverifiable, explain that an identity-safe collaborator search cannot be completed and stop.
 
-Note from this result:
-- The `resolved_name`
-- `career_metrics.orcid`, `career_metrics.display_name`, and `career_metrics.current_institution`, if present
-- The top 5 categories (you'll use these in Step 4 to select themes)
-- The total paper count (sets context for the network size)
+Use non-null `career_metrics.display_name` as the display name. For researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
+
+Call `get_author_profile` with the selected display name and resolved ORCID when present. Record its `resolved_name`, `stats_source`, warnings, corpus paper count, and source-specific categories.
+
+This step is complete when one focal identity and one corpus name bucket are explicit and no candidate list remains unresolved.
 
 ### Step 2: Build the exclusion set (existing coauthor network)
 
+If the profile `resolved_name` is null, explain that no corpus name bucket is available for the coauthor exclusion and stop.
+
 Call `find_coauthors` with:
-- `author` (string): the resolved name from Step 1
+- `author` (string): the profile `resolved_name` from Step 1
 - `limit` (integer): 100
 - `exclude_mega_collaborations` (boolean): true
 
@@ -50,14 +52,12 @@ Note: 100 is the maximum the tool accepts and represents the focal author's stro
 
 ### Step 3: Pull the focal author's recent papers (current themes)
 
-Call `find_papers_by_researcher` with:
-- `orcid` (string): the ORCID from Step 1, if present; otherwise omit it and pass `author` (string): the `resolved_name`
+Call `find_papers_by_researcher` with the strongest key from Step 1:
+- ORCID, the tool's stable-author-identifier parameter, or `author`
 - `limit` (integer): 20
 - `sort_by` (string): "recency"
 
-`"recency"` orders papers by `datestamp`, so treat the result as record-recent rather than publication-recent. Keep the first 10 for now; Step 4 applies the requested freshness window before calling them current. Abstracts are included because Step 4 reads them.
-
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 20, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. The date filter is only a `datestamp` prefilter; Step 4 applies the source-aware freshness check.
+Inspect `candidates`, `disambiguation_status`, `warnings`, and every paper's `match_type`. Resolve reappearing candidates before continuing; stop on an unverifiable result. `"recency"` orders papers by `datestamp`, so treat the result as record-recent rather than publication-recent. Keep the first 10 for now; Step 4 applies the requested freshness window before calling them current. Abstracts are included because Step 4 reads them.
 
 ### Step 4: Identify 2–4 current themes
 

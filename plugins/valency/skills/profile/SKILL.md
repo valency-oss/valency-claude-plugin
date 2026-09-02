@@ -21,41 +21,48 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 
 Execute these steps in order.
 
-### Step 1: Get author profile
+### Step 1: Resolve the researcher
 
-Call `get_author_profile` with:
+Call `get_author_identity` with:
 - `author` (string): the author name provided by the user
 
-This returns `resolved_name`, a `summary` (papers in corpus, first and last paper dates, unique coauthor count), a `categories` list of `{category, count}` pairs, a year-by-year `timeline`, and `career_metrics` from the upstream citation graph: `display_name`, `orcid`, `h_index`, `works_count`, `cited_by_count`, `affiliations`, and `current_institution`. `career_metrics` may be absent for authors the graph does not know.
+Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. A non-null `resolved_name` alone identifies a corpus name bucket, not necessarily one human.
 
-If no results are found, tell the user the author was not found and suggest checking the spelling or trying a partial name. Stop here.
+If `candidates` is non-empty, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidates' display names, institutions, and sample recent titles, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Do not continue while candidates remain unresolved.
 
-**Fragmented names.** Counts in this response are keyed to one exact name string. If `warnings` mentions fragmentation across name variants and `career_metrics.orcid` is present, take the ORCID path in Step 2 so the paper list covers every variant.
+If no usable identity or name bucket is returned, tell the user the researcher could not be resolved and stop. Use non-null `career_metrics.display_name` as the display name. For later researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
 
-### Step 2: Get top papers
+This step is complete when one researcher has been selected and no unresolved candidate list remains.
 
-If Step 1 flagged fragmentation and returned an ORCID, call `find_papers_by_researcher` with:
-- `orcid` (string): the ORCID from `career_metrics`
+### Step 2: Get the corpus profile
+
+Call `get_author_profile` with:
+- `author` (string): the selected display name
+- `orcid` (string): the resolved ORCID, when present
+
+Without an ORCID, use the identity result's `resolved_name` as `author`. Record `stats_source`: `orcid_keyed` is identity-linked, while `name_keyed` remains a potentially fragmented name-bucket aggregate. The result supplies corpus `summary`, `categories`, `timeline`, and nullable identity-provider `career_metrics`.
+
+This step is complete when each profile claim has its corpus or identity-provider provenance and material warnings attached.
+
+### Step 3: Get citation-ranked papers
+
+Call `find_papers_by_researcher` with the strongest key from Step 1:
+- ORCID, the tool's stable-author-identifier parameter, or `author`
 - `limit` (integer): 10
 - `sort_by` (string): "citations"
 
-Otherwise call `search_by_author` with:
-- `author` (string): the author name
-- `limit` (integer): 10
-- `sort_by` (string): "citations"
-- `strict_mode` (string): "fuzzy"
-- `include_abstract` (boolean): false
+Inspect `candidates`, `disambiguation_status`, `warnings`, `returned_count`, each paper's `match_type`, and citation coverage. Resolve any reappearing candidates before continuing. Describe the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited paper when citation counts are incomplete.
 
-Either call returns the author's top papers sorted by citation count.
+This step is complete when every returned paper is attributed to the selected identity or carries its explicit attribution qualification.
 
-### Step 3: Get top collaborators
+### Step 4: Get top coauthor name buckets
 
-Call `find_coauthors` with:
-- `author` (string): the author name
+If Step 2 returned a non-null `resolved_name`, call `find_coauthors` with:
+- `author` (string): that `resolved_name`
 - `limit` (integer): 10
 - `exclude_mega_collaborations` (boolean): true
 
-This returns the author's most frequent collaborators with co-publication counts. Excluding papers with more than 100 authors keeps survey and consortium rosters from crowding out real collaborators.
+Otherwise skip this step and state that no corpus name key was available. The result is a top-N list of coauthor name buckets, not a complete identity-resolved collaboration graph.
 
 ## Output Format
 
@@ -64,17 +71,17 @@ Present the results in this structure:
 ### Summary
 
 A brief block:
-- **Name**: `career_metrics.display_name` if present, otherwise the name as it appears in the corpus
-- **Institution**: `career_metrics.current_institution` (omit if absent)
-- **ORCID**: from `career_metrics` (omit if absent)
-- **h-index**: from `career_metrics` (omit if absent)
-- **Papers in corpus**: `summary.total_papers`. When `career_metrics.works_count` is present, add "of N works upstream" so the reader can see how much of the career the corpus covers.
+- **Name**: selected display name
+- **Identity**: ORCID when present; otherwise the returned disambiguation qualification
+- **Institution**: `career_metrics.current_institution.institution` (omit if absent)
+- **h-index**: from identity-provider `career_metrics` (omit if absent)
+- **Papers in corpus**: `summary.total_papers`, labeled with `stats_source`. When `career_metrics.works_count` is present, add the separately sourced upstream works count.
 - **Observed paper activity**: `summary.first_paper` to `summary.last_paper`, labeled as corpus activity with the mixed first-submission/record-date caveat
-- **Primary domains**: top 3 categories from Step 1
+- **Primary domains**: top 3 categories from Step 2
 
 ### Research Domains
 
-A table of the top 5 categories from Step 1:
+A table of the top 5 categories from Step 2:
 
 | Category | Papers |
 |----------|--------|
@@ -83,7 +90,7 @@ A table of the top 5 categories from Step 1:
 
 ### Top Papers
 
-A numbered list of up to 10 papers from Step 2. For each paper show:
+A numbered list of up to 10 papers from Step 3. State `returned_count`, `disambiguation_status`, citation coverage, and material warnings. For each paper show:
 - [Title](url) (paper ID)
 - Source-aware date label
 - Citations (`citation_count`; omit if null)
@@ -91,7 +98,7 @@ A numbered list of up to 10 papers from Step 2. For each paper show:
 
 ### Top Collaborators
 
-A table of up to 5 collaborators from Step 3:
+A table of up to 5 coauthor name buckets from Step 4:
 
 | Collaborator | Co-authored papers |
 |--------------|-------------------|
@@ -102,4 +109,4 @@ A table of up to 5 collaborators from Step 3:
 
 - `/valency:network <author_name>` — map their collaboration network
 - `/valency:reading-list <author_name>` — a curated bibliography around their work
-- `/valency:similar <paper_id>` — find papers similar to their top work (use the ID of their most-cited paper)
+- `/valency:similar <paper_id>` — continue from the highest citation-ranked returned paper

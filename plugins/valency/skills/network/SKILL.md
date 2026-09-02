@@ -18,19 +18,18 @@ The user provides an author name (e.g., "Yoshua Bengio").
 
 ## Tool Chain
 
-### Step 1: Get author baseline
+### Step 1: Resolve the focal researcher and baseline
 
-Call `get_author_profile` with:
-- `author` (string): the author name
+Call `get_author_identity` with the author name. Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Stop if the focal identity remains unresolved.
 
-If no results are found, tell the user the author was not found and suggest checking the spelling. Stop here.
+Use non-null `career_metrics.display_name` as the display name. Call `get_author_profile` with that name and the resolved ORCID when present; without an ORCID, use the identity result's `resolved_name`. Record `stats_source`, warnings, categories, timeline, and career metrics. If the profile has no `resolved_name`, explain that no corpus name bucket is available for network mapping and stop.
 
-Note the author's top categories from this result — you'll need them to identify cross-domain bridges. Also note `career_metrics` (`h_index`, `works_count`, `current_institution`) if present.
+This step is complete when one focal identity and one corpus name bucket are explicit and no candidate list remains unresolved.
 
 ### Step 2: Get direct collaborators
 
 Call `find_coauthors` with:
-- `author` (string): the author name
+- `author` (string): the profile `resolved_name` from Step 1
 - `limit` (integer): 20
 - `exclude_mega_collaborations` (boolean): true
 
@@ -45,12 +44,13 @@ For each of the top 5 collaborators from Step 2, call `find_coauthors` with:
 
 Collect all second-degree collaborators. Remove any that are already direct collaborators of the focal author (from Step 2) or the focal author themselves.
 
-### Step 4: Compare focal author with top collaborators
+### Step 4: Resolve collaborators, then compare profiles
 
-Call `compare_authors` with:
-- `authors` (array of strings): a JSON array containing the focal author name and up to 4 of their top collaborators (max 5 total, tool requires 2-10), e.g. `["Yoshua Bengio", "Ian Goodfellow", "Aaron Courville"]`
+For up to 4 top collaborators from Step 2, call `get_author_identity` with the returned `coauthor` display name. Resolve candidate lists as in Step 1. Omit an unresolved collaborator from person-level comparison and retain only their explicitly labeled name-bucket edge.
 
-This returns side-by-side profiles with category overlap information. Each profile carries a `categories` list of `{category, count}` pairs, a `timeline`, and `career_metrics` when the upstream graph knows the author, plus a top-level `shared_categories` array. That is everything needed to compute divergence.
+Call `compare_authors` with the focal display name and the selected collaborators' canonical display names. Inspect top-level warnings and each profile's `stats_source`; the comparison aggregates remain name-keyed and must retain that qualification.
+
+This step is complete when every person-level comparison names a resolved human and every aggregate claim carries its `stats_source`.
 
 ### Step 5: Compute divergence (no tool call)
 
@@ -69,8 +69,8 @@ Synthesize these into a one-sentence characterization per collaborator. Examples
 ### Network Summary
 
 A brief paragraph:
-- Author name, current institution (if known), and total direct collaborators count
-- Primary research domains (from Step 1)
+- Selected author, current institution (if known), and number of direct coauthor name buckets returned
+- Primary source-specific research categories from the Step 1 profile
 
 ### Direct Collaborators
 
