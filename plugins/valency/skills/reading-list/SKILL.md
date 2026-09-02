@@ -57,7 +57,7 @@ From the combined Step 2 + Step 3 results, select 3 to 5 **seed papers** that be
 
 - Always include the highest citation-ranked returned paper, with its coverage qualification.
 - Always include the first record-recent paper with a substantive abstract.
-- Fill the remaining slots by picking papers whose category lists differ — i.e. cover different threads of the author's work, not five papers in the same subfield.
+- Fill the remaining slots with papers whose titles, substantive abstracts, and source-specific categories establish distinct intellectual threads.
 
 If two papers have nearly identical category lists and similar topics, pick only one.
 
@@ -66,7 +66,7 @@ If two papers have nearly identical category lists and similar topics, pick only
 For each seed paper from Step 4, call `find_similar_papers` with:
 - `paper_id` (string): the seed paper's ID
 - `limit` (integer): 10
-- `include_abstract` (boolean): false
+- `include_abstract` (boolean): true
 - `max_authors` (integer): 500
 
 A seed without an embedding returns a successful response with `count: 0`, `papers: []`, and a warning. Mark that seed as skipped and continue. Treat a genuine tool error separately and retain successful sibling threads.
@@ -83,6 +83,12 @@ After all `find_similar_papers` calls complete:
 6. **Group by seed** — partition the cleaned results by seed provenance and order each thread by that seed's own similarity score.
 
 This step is complete when every retained recommendation has a complete returned byline, no known focal alias match, and all seed-specific provenance preserved.
+
+### Step 7: Ground recommendation explanations
+
+Explain each connection using the seed and recommendation titles, substantive abstracts, and source-specific categories. If an abstract is missing despite the explicit request, either label the narrower title/category basis or omit the explanation.
+
+This step is complete when every recommendation explanation names the returned evidence that supports it.
 
 ## Output Format
 
@@ -105,7 +111,7 @@ Anchored by the seed paper:
 
 Recommended reading (5–8 papers per thread, ordered by similarity score):
 
-1. [Title](url) (paper ID) — first 3 authors, source-aware date label, category — one-sentence reason it matters here
+1. [Title](url) (paper ID) — first 3 authors, source-aware date label, category — one abstract-grounded sentence explaining why it matters here
 2. ...
 
 If a seed paper was skipped because it had no embedding, add a note under that thread: *"This seed had no embedding; no similar papers could be retrieved."*
@@ -114,7 +120,7 @@ If a seed paper was skipped because it had no embedding, add a note under that t
 
 If any paper appeared as similar to **multiple** seeds, highlight it as a cross-thread find — these are often the most interesting recommendations because they sit at the intersection of the author's threads:
 
-- [Title](url) (paper ID) — surfaced by Seed A *and* Seed C — why this matters
+- [Title](url) (paper ID) — surfaced by Seed A *and* Seed C — abstract-grounded explanation of the intersection
 
 If no cross-thread papers were found, omit this section.
 
