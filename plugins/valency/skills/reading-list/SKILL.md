@@ -16,7 +16,7 @@ The user provides an author name (e.g., "David W. Hogg", "Yoshua Bengio", "Jenni
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
 - Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`; describe those results as record-date filtered or record-recent.
-- Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
+- Define one `comparison_key(name)` for every local author comparison: normalize `"Last, First"` to `"First Last"`, Unicode case-fold, transliterate common Latin ligatures, NFKD-fold diacritics, delete apostrophes and periods, then trim and collapse whitespace. Preserve returned names for display.
 
 ## Tool Chain
 
@@ -30,6 +30,8 @@ Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If cand
 Use non-null `career_metrics.display_name` as the display name. For researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
 
 Call `get_author_profile` with the selected display name and the resolved ORCID when present. Record `resolved_name`, `stats_source`, warnings, corpus paper count, and source-specific categories.
+
+Build a focal alias-key set with `comparison_key` applied to the input name, identity `resolved_name`, every non-null canonical display name, and profile `resolved_name`.
 
 This step is complete when one researcher has been selected, no candidate list remains unresolved, and the corpus profile's provenance is recorded.
 
@@ -65,6 +67,7 @@ For each seed paper from Step 4, call `find_similar_papers` with:
 - `paper_id` (string): the seed paper's ID
 - `limit` (integer): 10
 - `include_abstract` (boolean): false
+- `max_authors` (integer): 500
 
 If a seed paper has no embedding and the call returns an error, skip that seed and continue with the others. Note the skip in the output.
 
@@ -72,10 +75,14 @@ If a seed paper has no embedding and the call returns an error, skip that seed a
 
 After all `find_similar_papers` calls complete:
 
-1. **Tag each result** with the seed paper that surfaced it.
-2. **Deduplicate** — if a paper appears in multiple seeds' similar lists, keep the entry with the highest similarity score and merge the seed tags.
-3. **Filter out self-citations** — drop any paper whose author list contains the focal author. Normalize names as described in Conventions, then match against `resolved_name` and, if present, `career_metrics.display_name`.
-4. **Group by seed** — partition the cleaned results by which seed paper(s) surfaced them. This grouping defines the reading-list "threads."
+1. **Tag each result** with the seed paper and its seed-specific similarity score.
+2. **Deduplicate by paper family** using `(source, base_id ?? id)`, retaining every seed-specific score and provenance.
+3. **Exclude known focal work** — drop selected seeds and papers appearing in either returned focal-researcher pool.
+4. **Filter self-authorship** — compute `comparison_key` for every author and drop a paper if any key appears in the focal alias-key set.
+5. **Reject unverifiable bylines** — drop papers whose `authors` list is empty or whose `authors_truncated` remains true after requesting 500.
+6. **Group by seed** — partition the cleaned results by seed provenance and order each thread by that seed's own similarity score.
+
+This step is complete when every retained recommendation has a complete returned byline, no known focal alias match, and all seed-specific provenance preserved.
 
 ## Output Format
 

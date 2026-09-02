@@ -18,7 +18,7 @@ Optional: a number of months for the recency window. If not specified, default t
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
 - Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. A strict first-submission recency claim requires a supported preprint source and a usable `first_submitted` value.
-- Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
+- Define one `comparison_key(name)` for every local author comparison: normalize `"Last, First"` to `"First Last"`, Unicode case-fold, transliterate common Latin ligatures, NFKD-fold diacritics, delete apostrophes and periods, then trim and collapse whitespace. Preserve returned names for display.
 
 ## Tool Chain
 
@@ -46,9 +46,9 @@ Call `find_coauthors` with:
 - `limit` (integer): 100
 - `exclude_mega_collaborations` (boolean): true
 
-Build the **exclusion set**: a set of normalized names containing every `coauthor_norm` from this result, plus the focal author's `resolved_name` and `career_metrics.display_name` (normalized).
+Build the **exclusion set** from `comparison_key(coauthor_norm)` for every returned row, plus the keys of the input name, identity `resolved_name`, non-null canonical display names, and profile `resolved_name`.
 
-Note: 100 is the maximum the tool accepts and represents the focal author's strongest collaborators. Excluding papers with more than 100 authors keeps survey and consortium rosters from filling those slots. People who have co-authored only one or two papers, or only within a mega-collaboration, may still slip through as "fresh" — that is acceptable, since those are weak ties and reconnecting with them is also useful.
+This endpoint returns at most the strongest 100 coauthor name buckets for one focal normalized-name bucket and excludes collaborations with more than 100 authors. Record the returned count. The exclusion is bounded weak-tie evidence, not a complete identity-resolved collaboration history.
 
 ### Step 3: Pull the focal author's recent papers (current themes)
 
@@ -85,9 +85,9 @@ For each theme from Step 4, call `semantic_search_papers` with:
 - `sort_by` (string): "relevance"
 - `include_abstract` (boolean): false
 - `enrich_citations` (boolean): false
-- `max_authors` (integer): 100
+- `max_authors` (integer): 500
 
-`start_date` is only a server-side `datestamp` prefilter. Step 6 applies the supported-source `first_submitted` check. `max_authors` raises the default cap of 20 so Step 6 sees more of each byline.
+`start_date` is only a server-side `datestamp` prefilter. Step 6 applies the supported-source `first_submitted` check. Requesting 500 authors minimizes unverifiable truncated bylines.
 
 If a theme returns fewer than 5 papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
 
@@ -95,11 +95,11 @@ If a theme returns fewer than 5 papers, that theme is too narrow or the corpus i
 
 First, keep strict first-submission candidates only from arXiv, bioRxiv, or medRxiv with a usable `first_submitted` satisfying `cutoff <= first_submitted <= today`. Drop other sources and missing or out-of-window values from this freshness workflow. Count these exclusions separately for the coverage notes.
 
-Then, for each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (normalized as described in Conventions) appears in the exclusion set built in Step 2.
+Then reject a paper when `authors` is empty. For each non-empty byline, compute `comparison_key` for every author and reject the paper if any key intersects the Step 2 exclusion set.
 
-Also drop any paper with `authors_truncated: true`. Its author list is incomplete even at 100, so it cannot be verified against the exclusion set. Count these separately for the coverage notes.
+Also reject any paper with `authors_truncated: true`. Its byline remains incomplete even after requesting 500 authors, so exclusion cannot be verified. Count empty and truncated bylines separately for the coverage notes.
 
-This removes papers by the focal author themselves, by their direct collaborators, and by anyone in the top-100 coauthor network. What remains is, by construction, "fresh."
+The remaining evidence supports only this statement: no returned byline author matches the focal or returned top-100 coauthor name buckets under the uniform comparison key.
 
 ### Step 7: Rank and categorize the fresh faces
 
@@ -107,7 +107,7 @@ For each remaining paper, identify the **first author** as the primary "fresh fa
 
 1. **Theme attribution.** Tag each candidate with which theme(s) surfaced them. Candidates surfaced by multiple themes are stronger matches and should be ranked higher.
 
-2. **Deduplicate.** If the same first author appears via multiple papers, merge into a single entry and list all surfacing papers.
+2. **Deduplicate after identity resolution.** Keep same-name candidates separate until Step 8 returns a stable identity. Merge only entries established as the same identity; otherwise retain each author-paper pair.
 
 3. **Junior/senior heuristic.** Without additional tool calls, infer junior vs senior from signals in the paper records: number of papers in the result set (1 = likely junior; many = likely established), and seniority cues from coauthors. Tag each candidate `[junior]`, `[senior]`, or `[unclear]`.
 
@@ -117,7 +117,7 @@ For each of the top 5 candidates after ranking, call `get_author_identity` with:
 - `author` (string): the candidate's name as it appears on the paper
 - `paper_id` (string): the ID of one surfacing paper
 
-The `paper_id` hint pins the lookup to that paper's author list. When `career_metrics` comes back, record `h_index`, `works_count`, and `current_institution`. They give a firmer read than the Step 7 heuristic: a handful of works suggests early career, a long record suggests established. Update the tag accordingly. If the call returns `candidates` instead of a single identity, or no `career_metrics`, keep the heuristic tag.
+The `paper_id` hint pins the lookup to that paper's author list. When `career_metrics` comes back, record `h_index`, `works_count`, and `current_institution`. They give a firmer read than the Step 7 heuristic: a handful of works suggests early career, a long record suggests established. Update the tag accordingly. If candidates remain unresolved, label the entry as an unverified byline name and keep it separate from every other same-name entry.
 
 ## Output Format
 
@@ -125,7 +125,7 @@ The `paper_id` hint pins the lookup to that paper's author list. When `career_me
 
 A short block:
 - **Focal author**: name (resolved), institution if known, total papers, primary domains
-- **Existing coauthor network size**: total from Step 2 (note that only the top 100 are in the exclusion set)
+- **Returned coauthor exclusion set**: number of top coauthor name buckets returned, capped at 100 and excluding mega-collaboration edges
 - **Recency window**: e.g. "Last 18 months (cutoff: 2024-10-07)"
 - **Themes searched**: bullet list of the 2–4 themes from Step 4
 
@@ -140,14 +140,14 @@ For each candidate:
 - **Institution / h-index**: from Step 8 when available
 - **Surfaced by themes**: theme A; theme B (if multiple)
 - **Surfacing paper(s)**: [Title](url) (paper ID), source-aware date label, category
-- **Why fresh**: explicit confirmation that this person is **not** in the focal author's top-100 coauthor list
+- **Why fresh**: no returned byline author matched the focal or returned top-100 coauthor name buckets under `comparison_key`; state that this is bounded weak-tie evidence
 - **Why interesting**: one sentence on the connection to the focal author's current work
 
 Show the top 10 candidates. If fewer than 10 survived, show all of them.
 
 ### Theme Coverage Notes
 
-For each theme from Step 4, report the number of papers returned by the date-restricted search, the number dropped as older than the cutoff, the number dropped for a truncated author list, and the number that survived exclusion filtering. This helps the user see which themes are crowded (lots of fresh activity) vs sparse (no one is doing this).
+For each theme from Step 4, report the number of papers returned by the record-date-prefiltered search, supported-source papers inside the first-submission window, papers rejected for empty bylines, papers rejected for truncated bylines, and papers surviving the bounded top-100 exclusion. Sparse results mean only that this query and window produced little usable evidence.
 
 ### Suggested Follow-ups
 

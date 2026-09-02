@@ -23,7 +23,7 @@ Every skill follows these. They are repeated in each SKILL.md so each skill is s
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
 - Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - Date filters (`start_date`, `end_date`) and recency sorts always operate on `datestamp`; describe them as record-date filters and record-recency ordering. Use `first_submitted` only as a separate source-qualified eligibility or display field.
-- Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
+- Define one `comparison_key(name)` for local author comparisons: normalize `"Last, First"` to `"First Last"`, Unicode case-fold, transliterate common Latin ligatures, NFKD-fold diacritics, delete apostrophes and periods, then trim and collapse whitespace. Apply it to both sides while preserving returned names for display.
 - Pass `include_abstract: false` unless the abstract is displayed or read. Pass `enrich_citations: false` unless citation counts are displayed or used for ranking.
 
 ## Rules
