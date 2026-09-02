@@ -1,6 +1,6 @@
 ---
 name: landscape
-description: "Use when the user asks for an overview of a research field, wants to understand a domain's key players, or asks 'what's happening in X' or 'give me a landscape of X'. Triggers on requests for field summaries, top authors in an area, or subdomain breakdowns. Also invokable as /valency:landscape <topic_or_category>."
+description: "Use when the user asks for an overview or landscape of a research field, what is happening in it, or who its most prolific authors are. Triggers on field summaries, top authors in a category, and field activity over time. Also invokable as /valency:landscape <topic_or_category>."
 ---
 
 # Field Landscape
@@ -75,15 +75,13 @@ Call `identify_prolific_authors` with:
 - `category` (string): the category code
 - `limit` (integer): 20
 
-Rows are author-name strings, not disambiguated people. Each row carries `disambiguation_status`. Drop rows with status `likely_aggregation` or `severe_aggregation` (a common name covering many researchers), then keep the first 10 that remain. Mark rows with status `ambiguous` as "(name may cover several researchers)". Requesting 20 leaves room to backfill after filtering.
-
-### Step 4: Identify subdomains
+### Step 4: Add corpus category context
 
 Call `identify_research_domains` with:
 - `limit` (integer): 10
 - `source` (string): "arxiv" if the input was a category code; otherwise the dominant source from Step 1
 
-This returns source-wide domain rankings, not rankings within the field. Passing `source` matters: without it the ranking interleaves category vocabularies from every source (arXiv codes, PubMed MeSH headings, bioRxiv labels) on different percentage bases. With it, the result is a coherent ranking within one vocabulary that contextualizes where this field sits among its source's domains.
+These are the highest-volume categories across the selected source, not subdomains of the requested field. Passing `source` keeps one category vocabulary and percentage base. Preserve this result as separate corpus context; do not use it to infer the requested field's internal concentration or subdomains.
 
 ### Step 5: Get corpus metrics
 
@@ -113,11 +111,11 @@ A year-by-year table from Step 2:
 
 ### Top Authors
 
-**Category input only.** A numbered list of up to 10 authors from Step 3 with their paper counts. Note how many rows were dropped as name-collision aggregates.
+**Category input only.** List up to 10 retained author-name aggregates with paper count and `disambiguation_status`. Present `unambiguous` normally; qualify `mostly_single`; label `ambiguous` and `unresolved` as unverified name aggregates with their row warnings; omit `likely_aggregation` and `severe_aggregation` and state how many rows were excluded.
 
-### Subdomain Breakdown
+### Corpus Category Context
 
-A table of the top research domains from Step 4, labelled with the source they were ranked within.
+A table of the source-wide category rankings from Step 4, labelled with the source and kept separate from the requested field's evidence.
 
 ### Notable Papers
 
@@ -132,7 +130,7 @@ List 5 of the most-cited papers from Step 1. For each:
 
 2-3 brief observations drawn from the data. Examples:
 - "Matching-record activity has doubled since 2021"
-- "The field is concentrated in 2-3 subdomain categories"
+- "The selected source's corpus-wide category ranking is led by X; this is context, not a subdomain claim about the requested field"
 - "Author X dominates with 3x more papers than the next most prolific"
 
 ### Suggested Follow-ups
