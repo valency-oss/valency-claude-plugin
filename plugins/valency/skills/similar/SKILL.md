@@ -61,7 +61,7 @@ Call `find_similar_papers` with:
 
 If the user asked for similar work on a specific source (e.g., "on bioRxiv"), add `result_source` (string) with that source name. Otherwise omit it so results span all sources.
 
-If the paper has no embedding and returns an error, tell the user that semantic similarity is not available for this paper and suggest trying `semantic_search_papers` with keywords from its abstract instead. Still run Step 3; forward citations do not need an embedding.
+A seed without an embedding returns a successful response with `count: 0`, `papers: []`, and a warning. Explain that paper-to-paper similarity is unavailable and offer `semantic_search_papers` using the seed title and abstract. For any other successful empty response, state that no neighbors were returned under the call's scope and suggest a broader or different query. Report a genuine tool error separately. Continue to Step 3 in every case because citation lookup does not need an embedding.
 
 ### Step 3: Find the most-cited papers that cite it
 
@@ -70,7 +70,9 @@ Call `get_citing_papers` with:
 - `limit` (integer): 5
 - `sort_by` (string): "citations"
 
-If `openalex_work_id` is null or `results` is empty, the paper is not yet in the citation graph. Omit the Cited By section.
+Inspect `warnings`, the citation-graph mapping identifier, `total_citing_papers`, and `results`. A null mapping means the seed is not mapped; suggest verifying the canonical paper version and omit the section. `CITATION_GRAPH_TIMEOUT` is transient: retry once, then report the known total with results unavailable if it persists. Surface `AUTHOR_LOOKUP_DEGRADED` beside any returned rows with missing authors. An empty unqualified result with total zero means no citing papers were found.
+
+This step is complete when the citation result is classified as mapped with results, mapped with zero citers, transiently unavailable, or unmapped.
 
 ### Step 4: Enrich results (if needed)
 
@@ -98,7 +100,7 @@ A numbered list ranked by similarity. For each paper:
 
 ### Cited By
 
-Omit if Step 3 returned nothing. Otherwise state `total_citing_papers`, then list the 5 results:
+Omit only when the seed is unmapped. Otherwise state `total_citing_papers`; list up to 5 returned results, or state why mapped results are temporarily unavailable:
 - **Title** — first 3 authors, `publication_year`, `cited_by_count` citations
 - If `in_corpus` is true, append the `valency_paper_id` so the user can explore it
 

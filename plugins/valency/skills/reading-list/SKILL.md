@@ -69,7 +69,7 @@ For each seed paper from Step 4, call `find_similar_papers` with:
 - `include_abstract` (boolean): false
 - `max_authors` (integer): 500
 
-If a seed paper has no embedding and the call returns an error, skip that seed and continue with the others. Note the skip in the output.
+A seed without an embedding returns a successful response with `count: 0`, `papers: []`, and a warning. Mark that seed as skipped and continue. Treat a genuine tool error separately and retain successful sibling threads.
 
 ### Step 6: Aggregate and clean
 
