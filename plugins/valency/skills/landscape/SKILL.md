@@ -18,7 +18,7 @@ The corpus spans seven sources (pubmed, arxiv, biorxiv, medrxiv, psyarxiv, socar
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - This skill does not display abstracts, so pass `include_abstract: false` on search calls.
 
 ## Tool Chain
@@ -122,7 +122,7 @@ A table of the top research domains from Step 4, labelled with the source they w
 List 5 of the most-cited papers from Step 1. For each:
 - [Title](url) (paper ID)
 - Authors (first 3, then "et al." if more)
-- Year (from `first_submitted`)
+- Source-aware date label
 - Citations
 - Category
 

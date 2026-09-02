@@ -29,7 +29,7 @@ Do not assume all bioRxiv records use the `10.1101/...` prefix. Newer records ma
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - PubMed papers carry MeSH headings in `categories` rather than category codes. Show them as-is.
 
 ## Tool Chain
@@ -83,7 +83,7 @@ The results from Step 2 already include metadata (title, authors, abstract, cate
 Display the seed paper's details:
 - **Title**: [Title](url) (paper ID)
 - **Authors**: first 5, then "et al." if more
-- **Year**: from `first_submitted`
+- **Date**: source-aware date label
 - **Source**: which server (arXiv, bioRxiv, PubMed, etc.)
 - **Abstract**: first 2-3 sentences
 
@@ -92,7 +92,7 @@ Display the seed paper's details:
 A numbered list ranked by similarity. For each paper:
 - [Title](url) (paper ID)
 - **Authors**: first 3, then "et al." if more
-- **Year**: from `first_submitted`
+- **Date**: source-aware date label
 - **Category**
 - **Abstract summary**: one sentence capturing the paper's contribution
 

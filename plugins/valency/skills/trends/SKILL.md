@@ -19,7 +19,7 @@ Optionally, a source name (pubmed, arxiv, biorxiv, medrxiv, psyarxiv, socarxiv, 
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - This skill does not display abstracts or citation counts, so pass `include_abstract: false` and `enrich_citations: false` on search calls.
 
 ## Tool Chain
@@ -64,7 +64,7 @@ Call `get_keyword_trends` once per keyword with:
 - `include_abstract` (boolean): false
 - `enrich_citations` (boolean): false
 
-Results are ordered by `datestamp`, most recent first. Present them sorted by `first_submitted`.
+Results are ordered by `datestamp`, most recent first. Preserve that record-recency order and label each paper's date with the source-aware convention.
 
 **For a keyword**, call `search_by_abstract` with:
 - `query` (string): the keyword (the first one, for comparisons)
@@ -106,7 +106,7 @@ A 3-5 sentence narrative covering:
 A numbered list of 3-5 papers from Step 2. For each:
 - [Title](url) (paper ID)
 - Authors (first 3, then "et al.")
-- Year (from `first_submitted`)
+- Source-aware date label
 
 ### Suggested Follow-ups
 

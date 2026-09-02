@@ -14,7 +14,7 @@ The user provides an author name (e.g., "Yoshua Bengio", "Y. LeCun", "Sara Walke
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`. `datestamp` is a source-record update date and can be years later.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 - This skill does not display abstracts, so pass `include_abstract: false` on search calls.
 
 ## Tool Chain
@@ -69,7 +69,7 @@ A brief block:
 - **ORCID**: from `career_metrics` (omit if absent)
 - **h-index**: from `career_metrics` (omit if absent)
 - **Papers in corpus**: `summary.total_papers`. When `career_metrics.works_count` is present, add "of N works upstream" so the reader can see how much of the career the corpus covers.
-- **Active years in corpus**: `summary.first_paper` year to `summary.last_paper` year. Say "in corpus": coverage starts at each source's earliest date (arXiv: 2007), not at the author's first paper.
+- **Observed paper activity**: `summary.first_paper` to `summary.last_paper`, labeled as corpus activity with the mixed first-submission/record-date caveat
 - **Primary domains**: top 3 categories from Step 1
 
 ### Research Domains
@@ -85,7 +85,7 @@ A table of the top 5 categories from Step 1:
 
 A numbered list of up to 10 papers from Step 2. For each paper show:
 - [Title](url) (paper ID)
-- Year (from `first_submitted`)
+- Source-aware date label
 - Citations (`citation_count`; omit if null)
 - Categories
 

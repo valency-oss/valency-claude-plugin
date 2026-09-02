@@ -14,7 +14,7 @@ The user provides an author name (e.g., "Yoshua Bengio").
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
 
 ## Tool Chain
 
@@ -58,7 +58,7 @@ For each top collaborator from Step 4, compute a **divergence characterization**
 
 - **Concentration delta**: convert each author's category counts to percentages of their total, then identify the top 1–2 categories where the collaborator's percentage exceeds the focal author's by ≥ 10 percentage points (collaborator is *more concentrated* there) and the top 1–2 categories where the focal author's percentage exceeds the collaborator's by ≥ 10 points (focal author is *more concentrated* there).
 - **Productivity ratio**: collaborator's total works ÷ focal author's total works. Use `career_metrics.works_count` for both when present, since corpus counts cover only part of a career; otherwise use `summary.total_papers`. Note when this is dramatically above (>2x) or below (<0.5x) parity.
-- **Career-phase signal**: compare the publication timelines. Note when the collaborator's output has accelerated, decelerated, or shifted (pivoted to a new dominant category) relative to the focal author over the last 3 years.
+- **Career-phase signal**: compare the record-activity timelines. Note when the collaborator's observed corpus activity has accelerated, decelerated, or shifted relative to the focal author over the last 3 years. Do not describe these mixed-source buckets as publication chronology.
 
 Synthesize these into a one-sentence characterization per collaborator. Examples:
 - *"More concentrated on astro-ph.GA (57% vs 41%); 2× the productivity; output accelerating in the Gaia era while focal author's has held steady."*

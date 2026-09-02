@@ -16,8 +16,8 @@ Optional: a number of months for the recency window. If not specified, default t
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
-- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. When recency matters, re-filter and re-sort on `first_submitted` yourself.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
+- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. A strict first-submission recency claim requires a supported preprint source and a usable `first_submitted` value.
 - Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
 
 ## Tool Chain
@@ -55,9 +55,9 @@ Call `find_papers_by_researcher` with:
 - `limit` (integer): 20
 - `sort_by` (string): "recency"
 
-"Recency" sorts on `datestamp`, a source-record update date, so a re-indexed 2014 paper can outrank last year's. Sort the returned papers by `first_submitted` descending yourself and keep the top 10. These represent the author's *current* intellectual direction. Abstracts are included; Step 4 reads them.
+`"recency"` orders papers by `datestamp`, so treat the result as record-recent rather than publication-recent. Keep the first 10 for now; Step 4 applies the requested freshness window before calling them current. Abstracts are included because Step 4 reads them.
 
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 20, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. `start_date` also filters on `datestamp`, so drop anything whose `first_submitted` is before the cutoff, then sort by `first_submitted` descending and keep the top 10.
+**Fallback.** If this returns no papers, call `search_by_author` with `author` (the resolved name), `limit` 20, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to the cutoff date. The date filter is only a `datestamp` prefilter; Step 4 applies the source-aware freshness check.
 
 ### Step 4: Identify 2–4 current themes
 
@@ -85,13 +85,13 @@ For each theme from Step 4, call `semantic_search_papers` with:
 - `enrich_citations` (boolean): false
 - `max_authors` (integer): 100
 
-`start_date` narrows the server-side similarity search, but it filters on `datestamp` (a source-record update date), so a re-indexed old paper can pass. Step 6 applies the real recency check on `first_submitted`. `max_authors` raises the default cap of 20 so Step 6 sees the full author list.
+`start_date` is only a server-side `datestamp` prefilter. Step 6 applies the supported-source `first_submitted` check. `max_authors` raises the default cap of 20 so Step 6 sees more of each byline.
 
 If a theme returns fewer than 5 papers, that theme is too narrow or the corpus is too sparse for the recency window. Note this in the output but do not stop.
 
 ### Step 6: Filter against the exclusion set
 
-First, **drop any paper whose `first_submitted` is before the cutoff date**. Count these separately for the coverage notes.
+First, keep strict first-submission candidates only from arXiv, bioRxiv, or medRxiv with a usable `first_submitted` satisfying `cutoff <= first_submitted <= today`. Drop other sources and missing or out-of-window values from this freshness workflow. Count these exclusions separately for the coverage notes.
 
 Then, for each surviving paper, inspect its `authors` list. **Drop any paper** for which **any author** in the list (normalized as described in Conventions) appears in the exclusion set built in Step 2.
 
@@ -137,7 +137,7 @@ For each candidate:
 
 - **Institution / h-index**: from Step 8 when available
 - **Surfaced by themes**: theme A; theme B (if multiple)
-- **Surfacing paper(s)**: [Title](url) (paper ID), year (from `first_submitted`), category
+- **Surfacing paper(s)**: [Title](url) (paper ID), source-aware date label, category
 - **Why fresh**: explicit confirmation that this person is **not** in the focal author's top-100 coauthor list
 - **Why interesting**: one sentence on the connection to the focal author's current work
 

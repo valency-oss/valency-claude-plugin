@@ -14,8 +14,8 @@ The user provides an author name (e.g., "David W. Hogg", "Yoshua Bengio", "Jenni
 ## Conventions
 
 - Link every paper as `[Title](url)` using the paper's `url` field, followed by its ID.
-- Report a paper's year from `first_submitted`, never `datestamp`.
-- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`. When recency matters, re-filter and re-sort on `first_submitted` yourself.
+- Use source-aware date labels. `datestamp` is the source record/update date. For arXiv, bioRxiv, and medRxiv, non-null `first_submitted` is a first-submission estimate; for every other or unknown source, it is a record-derived month estimate. None is a publication date or year.
+- Date filters (`start_date`, `end_date`) and recency sorts operate on `datestamp`; describe those results as record-date filtered or record-recent.
 - Author strings may be "First Last" (arXiv) or "Last, First" (PubMed). Before comparing names, lowercase both and convert "last, first" to "first last".
 
 ## Tool Chain
@@ -48,9 +48,9 @@ Call `find_papers_by_researcher` with the same identity as Step 2 and:
 - `limit` (integer): 15
 - `sort_by` (string): "recency"
 
-"Recency" sorts on `datestamp`, a source-record update date, so a re-indexed 2014 paper can outrank last year's. Sort the returned papers by `first_submitted` descending yourself and keep the top 5. These represent the author's *current* intellectual direction, which may differ from their most-cited work.
+`"recency"` orders papers by `datestamp`. Keep the first 5 and describe them as the author's *record-recent* corpus work, not publication chronology.
 
-**Fallback.** If this returns no papers, call `search_by_author` with `author` (the author name), `limit` 15, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to three years before today in `YYYY-MM-DD`. `start_date` also filters on `datestamp`, so drop anything whose `first_submitted` is older than that date, then sort by `first_submitted` descending and keep the top 5.
+**Fallback.** If this returns no papers, call `search_by_author` with `author` (the author name), `limit` 15, `sort_by` "relevance", `strict_mode` "fuzzy", and `start_date` set to three years before today in `YYYY-MM-DD`. Treat `start_date` as a `datestamp` filter and keep the first 5 returned papers.
 
 ### Step 4: Select 3–5 representative seed papers
 
@@ -96,11 +96,11 @@ For each seed paper from Step 4, produce a thread section:
 #### Thread N: <one-line characterization of the thread>
 
 Anchored by the seed paper:
-- **Seed**: [Title](url) (paper ID), year (from `first_submitted`), categories
+- **Seed**: [Title](url) (paper ID), source-aware date label, categories
 
 Recommended reading (5–8 papers per thread, ordered by similarity score):
 
-1. [Title](url) (paper ID) — first 3 authors, year, category — one-sentence reason it matters here
+1. [Title](url) (paper ID) — first 3 authors, source-aware date label, category — one-sentence reason it matters here
 2. ...
 
 If a seed paper was skipped because it had no embedding, add a note under that thread: *"This seed had no embedding; no similar papers could be retrieved."*
