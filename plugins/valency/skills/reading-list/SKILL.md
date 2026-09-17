@@ -25,27 +25,29 @@ The user provides an author name (e.g., "David W. Hogg", "Yoshua Bengio", "Jenni
 Call `get_author_identity` with:
 - `author` (string): the author name provided by the user
 
-Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Stop if the identity remains unverifiable.
+Inspect `status`, `resolved`, `person`, `warnings`, `candidates`, and `next_action`. Continue with person-specific analysis only when `status: resolved` and `person.author_id` are present. Otherwise present returned candidates or spelling suggestions, ask the user to choose, and re-call with `author_id`, a corrected `author`, or an ORCID or identifying paper as directed by `next_action`. For a candidate without an ID, use its ORCID or `recent_paper_id` plus `recent_source` as `paper_id` plus `source`, retaining the candidate name as `author`. Stop if the researcher remains unresolved; `name_only` does not identify one person.
 
-Use non-null `career_metrics.display_name` as the display name. For researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
+When an author-tool response is `degraded` and requests `retry_unchanged`, retry once. If it remains degraded, preserve available data and warnings, and label missing data unavailable rather than zero. Use `person.display_name` for display when present and `person.author_id` as `author_id` in subsequent researcher calls.
 
-Call `get_author_profile` with the selected display name and the resolved ORCID when present. Record `resolved_name`, `stats_source`, warnings, corpus paper count, and source-specific categories.
+`get_author_identity` returns the same profile as `get_author_profile`; reuse its `person`, `career`, `corpus`, and `coverage_note`. Corpus counts and categories come from `corpus.corpus_papers` and `corpus.top_categories`; whole-career metrics come from `career`. Missing blocks or null metrics are unavailable, not zero.
 
-Build a focal alias-key set with `comparison_key` applied to the input name, identity `resolved_name`, every non-null canonical display name, and profile `resolved_name`.
+Build a focal alias-key set with `comparison_key` applied to the input name and non-null `person.display_name`.
 
-This step is complete when one researcher has been selected, no candidate list remains unresolved, and the corpus profile's provenance is recorded.
+This step is complete when one researcher has been selected and available profile data is scoped to corpus or career.
 
 ### Step 2: Get citation-ranked papers (career anchors)
 
-Call `find_papers_by_researcher` with the strongest key from Step 1 and:
+Call `find_papers_by_researcher` with:
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 5
 - `sort_by` (string): "citations"
 
-Inspect `candidates`, `disambiguation_status`, `warnings`, `returned_count`, and citation coverage. Resolve any reappearing candidates before using the papers. Treat the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited work when coverage is incomplete.
+Inspect `status`, `degraded`, `next_action`, `warnings`, `returned_count`, and citation coverage. Handle unresolved or degraded results as in Step 1; use only resolved results and exclude papers marked `identity_confirmed: false` from the focal seed pool. Treat the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited work when coverage is incomplete.
 
 ### Step 3: Get record-recent papers (current corpus direction)
 
-Call `find_papers_by_researcher` with the same identity and:
+Call `find_papers_by_researcher` with:
+- `author_id` (string): the same `person.author_id`
 - `limit` (integer): 15
 - `sort_by` (string): "recency"
 
@@ -96,9 +98,9 @@ This step is complete when every recommendation explanation names the returned e
 
 A short block:
 - **Name**: selected display name
-- **Identity**: ORCID when present; otherwise the returned disambiguation qualification
-- **Papers in corpus**: from the Step 1 profile, labeled with `stats_source`
-- **Primary domains**: top 3 source-specific categories from the Step 1 profile
+- **Identity**: ORCID when present; otherwise `person.author_id`
+- **Papers in corpus**: `corpus.corpus_papers`, with `coverage_note` when available
+- **Primary domains**: top 3 entries in `corpus.top_categories`
 
 ### Reading List by Thread
 

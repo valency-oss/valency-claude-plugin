@@ -20,45 +20,49 @@ The user provides an author name (e.g., "Yoshua Bengio").
 
 ### Step 1: Resolve the focal researcher and baseline
 
-Call `get_author_identity` with the author name. Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Stop if the focal identity remains unresolved.
+Call `get_author_identity` with `author` set to the author name.
 
-Use non-null `career_metrics.display_name` as the display name. Call `get_author_profile` with that name and the resolved ORCID when present; without an ORCID, use the identity result's `resolved_name`. Record `stats_source`, warnings, categories, timeline, and career metrics. If the profile has no `resolved_name`, explain that no corpus name bucket is available for network mapping and stop.
+Inspect `status`, `resolved`, `person`, `warnings`, `candidates`, and `next_action`. Continue with person-specific analysis only when `status: resolved` and `person.author_id` are present. Otherwise present returned candidates or spelling suggestions, ask the user to choose, and re-call with `author_id`, a corrected `author`, or an ORCID or identifying paper as directed by `next_action`. For a candidate without an ID, use its ORCID or `recent_paper_id` plus `recent_source` as `paper_id` plus `source`, retaining the candidate name as `author`. Stop if the researcher remains unresolved; `name_only` does not identify one person.
 
-This step is complete when one focal identity and one corpus name bucket are explicit and no candidate list remains unresolved.
+When an author-tool response is `degraded` and requests `retry_unchanged`, retry once. If it remains degraded, preserve available data and warnings, and label missing data unavailable rather than zero. Use `person.display_name` for display when present and `person.author_id` as `author_id` in subsequent researcher calls.
+
+`get_author_identity` returns the same profile as `get_author_profile`; reuse its `person`, `career`, `corpus`, and `coverage_note`. Corpus counts and categories come from `corpus.corpus_papers` and `corpus.top_categories`; whole-career metrics come from `career`. Missing blocks or null metrics are unavailable, not zero.
+
+This step is complete when one focal researcher has been identified.
 
 ### Step 2: Get direct collaborators
 
 Call `find_coauthors` with:
-- `author` (string): the profile `resolved_name` from Step 1
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 20
-- `exclude_mega_collaborations` (boolean): true
+- `include_mega_collaborations` (boolean): false
 
-This returns collaborators ranked by co-publication count, ignoring papers with more than 100 authors so survey and consortium rosters do not dominate the network. Note the top 5 collaborators for the next step. Use the `coauthor_norm` field (normalized name) when passing names to subsequent tool calls.
+Handle unresolved or degraded results as in Step 1. This returns identity-linked collaborators ranked by shared corpus paper count, ignoring papers with more than 50 authors. Note the top 5 collaborators for the next step. Use `coauthor_id` for subsequent calls and `coauthor` for display, falling back to the ID when the name is unavailable.
 
 ### Step 3: Get second-degree connections
 
 For each of the top 5 collaborators from Step 2, call `find_coauthors` with:
-- `author` (string): the collaborator's normalized name (`coauthor_norm`)
+- `author_id` (string): the collaborator's `coauthor_id`
 - `limit` (integer): 10
-- `exclude_mega_collaborations` (boolean): true
+- `include_mega_collaborations` (boolean): false
 
-Collect all second-degree collaborators. Remove any that are already direct collaborators of the focal author (from Step 2) or the focal author themselves.
+Handle each result as in Step 1 and collect available second-degree collaborators. Deduplicate and remove direct collaborators or the focal author by `coauthor_id` / `person.author_id`. Describe connections as absent from the returned direct list, not proven absent from the complete network.
 
-### Step 4: Resolve collaborators, then compare profiles
+### Step 4: Compare collaborator profiles
 
-For up to 4 top collaborators from Step 2, call `get_author_identity` with the returned `coauthor` display name. Resolve candidate lists as in Step 1. Omit an unresolved collaborator from person-level comparison and retain only their explicitly labeled name-bucket edge.
+Call `compare_authors` with `authors` containing the focal researcher and up to 4 top collaborators from Step 2, each as `{"author_id": "<returned ID>"}`. Skip the comparison if no collaborator was returned.
 
-Call `compare_authors` with the focal display name and the selected collaborators' canonical display names. Inspect top-level warnings and each profile's `stats_source`; the comparison aggregates remain name-keyed and must retain that qualification.
+Inspect top-level warnings and each profile's `status`, `degraded`, `next_action`, `person`, `career`, and `corpus`. Handle unresolved or degraded entries as in Step 1 and compute comparisons only from available resolved data.
 
-This step is complete when every person-level comparison names a resolved human and every aggregate claim carries its `stats_source`.
+This step is complete when every comparison is tied to the returned researcher IDs and its corpus or career scope is explicit.
 
 ### Step 5: Compute divergence (no tool call)
 
 For each top collaborator from Step 4, compute a **divergence characterization** from the `compare_authors` result. For each collaborator, determine:
 
-- **Concentration delta**: convert each author's category counts to percentages of their total, then identify the top 1–2 categories where the collaborator's percentage exceeds the focal author's by ≥ 10 percentage points (collaborator is *more concentrated* there) and the top 1–2 categories where the focal author's percentage exceeds the collaborator's by ≥ 10 points (focal author is *more concentrated* there).
-- **Productivity ratio**: collaborator's total works ÷ focal author's total works. Use `career_metrics.works_count` for both when present, since corpus counts cover only part of a career; otherwise use `summary.total_papers`. Note when this is dramatically above (>2x) or below (<0.5x) parity.
-- **Career-phase signal**: compare the record-activity timelines. Note when the collaborator's observed corpus activity has accelerated, decelerated, or shifted relative to the focal author over the last 3 years. Do not describe these mixed-source buckets as publication chronology.
+- **Concentration delta**: convert each author's `corpus.top_categories` counts to percentages of their total, then identify the top 1–2 categories where the collaborator's percentage exceeds the focal author's by ≥ 10 percentage points (collaborator is *more concentrated* there) and the top 1–2 categories where the focal author's percentage exceeds the collaborator's by ≥ 10 points (focal author is *more concentrated* there).
+- **Productivity ratio**: collaborator's total works ÷ focal author's total works. Use `career.career_works` for both when present, since corpus counts cover only part of a career; otherwise use `corpus.corpus_papers`. Note when this is dramatically above (>2x) or below (<0.5x) parity.
+- **Career-phase signal**: compare `corpus.papers_per_year`. Note when the collaborator's observed corpus activity has accelerated, decelerated, or shifted relative to the focal author over the last 3 years. Do not describe these mixed-source buckets as publication chronology.
 
 Synthesize these into a one-sentence characterization per collaborator. Examples:
 - *"More concentrated on astro-ph.GA (57% vs 41%); 2× the productivity; output accelerating in the Gaia era while focal author's has held steady."*
@@ -69,8 +73,8 @@ Synthesize these into a one-sentence characterization per collaborator. Examples
 ### Network Summary
 
 A brief paragraph:
-- Selected author, current institution (if known), and number of direct coauthor name buckets returned
-- Primary source-specific research categories from the Step 1 profile
+- Selected author, current institution (if known), and number of direct collaborators returned
+- Primary source-specific research categories from `corpus.top_categories` in Step 1
 
 ### Direct Collaborators
 
@@ -85,7 +89,7 @@ The "Primary domain" column comes from Step 4 comparison data for the top collab
 
 ### Second-Degree Connections
 
-A list of notable second-degree connections from Step 3 — people who collaborate with the focal author's collaborators but not directly with the focal author. Show up to 10, prioritizing those who appear via multiple collaborators:
+A list of notable second-degree connections from Step 3 — people who collaborate with the focal author's collaborators but were absent from the returned direct-collaborator list. Show up to 10, prioritizing those who appear via multiple collaborators:
 
 - **Name** (connected through: Collaborator A, Collaborator B) — primary domain if known
 

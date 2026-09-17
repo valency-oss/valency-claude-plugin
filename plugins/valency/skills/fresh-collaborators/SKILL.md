@@ -29,35 +29,35 @@ Optional: a number of months for the recency window. If not specified, default t
 Call `get_author_identity` with:
 - `author` (string): the author name
 
-Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. If candidates are returned, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidate evidence, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). If the identity remains unverifiable, explain that an identity-safe collaborator search cannot be completed and stop.
+Inspect `status`, `resolved`, `person`, `warnings`, `candidates`, and `next_action`. Continue with person-specific analysis only when `status: resolved` and `person.author_id` are present. Otherwise present returned candidates or spelling suggestions, ask the user to choose, and re-call with `author_id`, a corrected `author`, or an ORCID or identifying paper as directed by `next_action`. For a candidate without an ID, use its ORCID or `recent_paper_id` plus `recent_source` as `paper_id` plus `source`, retaining the candidate name as `author`. Stop if the researcher remains unresolved; `name_only` does not identify one person.
 
-Use non-null `career_metrics.display_name` as the display name. For researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
+When an author-tool response is `degraded` and requests `retry_unchanged`, retry once. If it remains degraded, preserve available data and warnings, and label missing data unavailable rather than zero. Use `person.display_name` for display when present and `person.author_id` as `author_id` in subsequent researcher calls.
 
-Call `get_author_profile` with the selected display name and resolved ORCID when present. Record its `resolved_name`, `stats_source`, warnings, corpus paper count, and source-specific categories.
+`get_author_identity` returns the same profile as `get_author_profile`; reuse its `person`, `career`, `corpus`, and `coverage_note`. Corpus counts and categories come from `corpus.corpus_papers` and `corpus.top_categories`; whole-career metrics come from `career`. Missing blocks or null metrics are unavailable, not zero.
 
-This step is complete when one focal identity and one corpus name bucket are explicit and no candidate list remains unresolved.
+This step is complete when one focal researcher has been identified.
 
 ### Step 2: Build the exclusion set (existing coauthor network)
 
-If the profile `resolved_name` is null, explain that no corpus name bucket is available for the coauthor exclusion and stop.
-
 Call `find_coauthors` with:
-- `author` (string): the profile `resolved_name` from Step 1
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 100
-- `exclude_mega_collaborations` (boolean): true
+- `include_mega_collaborations` (boolean): false
 
-Build the **exclusion set** from `comparison_key(coauthor_norm)` for every returned row, plus the keys of the input name, identity `resolved_name`, non-null canonical display names, and profile `resolved_name`.
+Handle unresolved or degraded results as in Step 1. If the coauthor lookup remains unresolved or degraded, or any returned `coauthor` display name is missing, explain that byline exclusion cannot be completed and stop.
 
-This endpoint returns at most the strongest 100 coauthor name buckets for one focal normalized-name bucket and excludes collaborations with more than 100 authors. Record the returned count. The exclusion is bounded weak-tie evidence, not a complete identity-resolved collaboration history.
+Build the **exclusion set** from `comparison_key(coauthor)` for every returned row, plus the keys of the input name and non-null `person.display_name`. Retain `coauthor_id` for identity comparisons.
+
+This endpoint returns at most the strongest 100 identity-linked collaborators in this corpus and excludes papers with more than 50 authors. Record the returned count. The later byline exclusion compares their returned names, not identities, and is bounded evidence rather than a complete collaboration history.
 
 ### Step 3: Pull the focal author's recent papers (current themes)
 
-Call `find_papers_by_researcher` with the strongest key from Step 1:
-- ORCID, the tool's stable-author-identifier parameter, or `author`
+Call `find_papers_by_researcher` with:
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 20
 - `sort_by` (string): "recency"
 
-Inspect `candidates`, `disambiguation_status`, `warnings`, and every paper's `match_type`. Resolve reappearing candidates before continuing; stop on an unverifiable result. `"recency"` orders papers by `datestamp`, so pass all returned papers to Step 4 for the requested freshness check. Abstracts are included because Step 4 reads them.
+Inspect `status`, `degraded`, `next_action`, and `warnings`. Handle unresolved or degraded results as in Step 1; use only resolved results and exclude papers marked `identity_confirmed: false` from focal evidence. `"recency"` orders papers by `datestamp`, so pass all returned papers to Step 4 for the requested freshness check. Abstracts are included because Step 4 reads them.
 
 ### Step 4: Identify 2–4 current themes
 
@@ -99,7 +99,7 @@ Then reject a paper when `authors` is empty. For each non-empty byline, compute 
 
 Also reject any paper with `authors_truncated: true`. Its byline remains incomplete even after requesting 500 authors, so exclusion cannot be verified. Count empty and truncated bylines separately for the coverage notes.
 
-The remaining evidence supports only this statement: no returned byline author matches the focal or returned top-100 coauthor name buckets under the uniform comparison key.
+The remaining evidence supports only this statement: no returned byline author matches the focal or returned top-100 collaborator display names under the uniform comparison key.
 
 ### Step 7: Rank and categorize the fresh faces
 
@@ -117,15 +117,15 @@ For each of the top 5 candidates after ranking, call `get_author_identity` with:
 - `author` (string): the candidate's name as it appears on the paper
 - `paper_id` (string): the ID of one surfacing paper
 
-The `paper_id` hint pins the lookup to that paper's author list. When `career_metrics` comes back, record `h_index`, `works_count`, and `current_institution`. They give a firmer read than the Step 7 heuristic: a handful of works suggests early career, a long record suggests established. Update the tag accordingly. If candidates remain unresolved, label the entry as an unverified byline name and keep it separate from every other same-name entry.
+The `paper_id` hint pins the lookup to that paper's author list. Inspect resolution and degradation as in Step 1. For resolved candidates, use `person.author_id` for deduplication and drop anyone whose ID matches the focal researcher or a Step 2 `coauthor_id`. When available, record `career.h_index`, `career.career_works`, and `career.current_institution`. They give a firmer read than the Step 7 heuristic: a handful of works suggests early career, a long record suggests established. Update the tag accordingly. If the identity remains unresolved, label the entry as an unverified byline name and keep it separate from every other same-name entry.
 
 ## Output Format
 
 ### Author Summary
 
 A short block:
-- **Focal author**: name (resolved), institution if known, total papers, primary domains
-- **Returned coauthor exclusion set**: number of top coauthor name buckets returned, capped at 100 and excluding mega-collaboration edges
+- **Focal author**: `person.display_name`, `career.current_institution` if known, `corpus.corpus_papers`, and `corpus.top_categories` when available
+- **Returned coauthor exclusion set**: number of top collaborators returned, capped at 100 and excluding mega-collaboration edges
 - **Recency window**: e.g. "Last 18 months (cutoff: 2024-10-07)"
 - **Themes searched**: bullet list of the 2–4 themes from Step 4
 
@@ -140,7 +140,7 @@ For each candidate:
 - **Institution / h-index**: from Step 8 when available
 - **Surfaced by themes**: theme A; theme B (if multiple)
 - **Surfacing paper(s)**: [Title](url) (paper ID), source-aware date label, category
-- **Why fresh**: no returned byline author matched the focal or returned top-100 coauthor name buckets under `comparison_key`; state that this is bounded weak-tie evidence
+- **Why fresh**: no returned byline author matched the focal or returned top-100 collaborator display names under `comparison_key`; state that this is bounded weak-tie evidence
 - **Why interesting**: one sentence on the connection to the focal author's current work
 
 Show the top 10 candidates. If fewer than 10 survived, show all of them.

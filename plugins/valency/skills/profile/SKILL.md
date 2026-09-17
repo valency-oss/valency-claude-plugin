@@ -26,43 +26,37 @@ Execute these steps in order.
 Call `get_author_identity` with:
 - `author` (string): the author name provided by the user
 
-Inspect `warnings`, `career_metrics`, `resolved_name`, and `candidates`. A non-null `resolved_name` alone identifies a corpus name bucket, not necessarily one human.
+Inspect `status`, `resolved`, `person`, `warnings`, `candidates`, and `next_action`. Continue with person-specific analysis only when `status: resolved` and `person.author_id` are present. Otherwise present returned candidates or spelling suggestions, ask the user to choose, and re-call with `author_id`, a corrected `author`, or an ORCID or identifying paper as directed by `next_action`. For a candidate without an ID, use its ORCID or `recent_paper_id` plus `recent_source` as `paper_id` plus `source`, retaining the candidate name as `author`. Stop if the researcher remains unresolved; `name_only` does not identify one person.
 
-If `candidates` is non-empty, select a lone ORCID-collision candidate only when its `confidence` is at least 0.95. Otherwise present the candidates' display names, institutions, and sample recent titles, ask the user to choose, and re-call with the chosen candidate's returned stable author identifier (or an ORCID or identifying paper when that identifier is null). Do not continue while candidates remain unresolved.
+When an author-tool response is `degraded` and requests `retry_unchanged`, retry once. If it remains degraded, preserve available data and warnings, and label missing data unavailable rather than zero. Use `person.display_name` for display when present and `person.author_id` as `author_id` in subsequent researcher calls.
 
-If no usable identity or name bucket is returned, tell the user the researcher could not be resolved and stop. Use non-null `career_metrics.display_name` as the display name. For later researcher calls, use the strongest available key: ORCID, then the stable author identifier returned in `career_metrics`, then the resolved name plus a user-supplied paper hint.
+This step is complete when one researcher has been selected.
 
-This step is complete when one researcher has been selected and no unresolved candidate list remains.
+### Step 2: Read the corpus profile
 
-### Step 2: Get the corpus profile
+`get_author_identity` returns the same profile as `get_author_profile`; reuse its `person`, `career`, `corpus`, and `coverage_note`. Corpus counts and categories come from `corpus.corpus_papers` and `corpus.top_categories`; whole-career metrics come from `career`. Missing blocks or null metrics are unavailable, not zero.
 
-Call `get_author_profile` with:
-- `author` (string): the selected display name
-- `orcid` (string): the resolved ORCID, when present
-
-Without an ORCID, use the identity result's `resolved_name` as `author`. Record `stats_source`: `orcid_keyed` is identity-linked, while `name_keyed` remains a potentially fragmented name-bucket aggregate. The result supplies corpus `summary`, `categories`, `timeline`, and nullable identity-provider `career_metrics`.
-
-This step is complete when each profile claim has its corpus or identity-provider provenance and material warnings attached.
+This step is complete when each profile claim has its corpus or career scope and material warnings attached.
 
 ### Step 3: Get citation-ranked papers
 
-Call `find_papers_by_researcher` with the strongest key from Step 1:
-- ORCID, the tool's stable-author-identifier parameter, or `author`
+Call `find_papers_by_researcher` with:
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 10
 - `sort_by` (string): "citations"
 
-Inspect `candidates`, `disambiguation_status`, `warnings`, `returned_count`, each paper's `match_type`, and citation coverage. Resolve any reappearing candidates before continuing. Describe the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited paper when citation counts are incomplete.
+Inspect `status`, `degraded`, `next_action`, `warnings`, `returned_count`, and citation coverage. Handle unresolved or degraded results as in Step 1. Papers marked `identity_confirmed: false` are name-only matches, not established work of the selected researcher. Describe the first result as the highest citation-ranked paper returned, not definitively the researcher's most-cited paper when citation counts are incomplete.
 
 This step is complete when every returned paper is attributed to the selected identity or carries its explicit attribution qualification.
 
-### Step 4: Get top coauthor name buckets
+### Step 4: Get top collaborators
 
-If Step 2 returned a non-null `resolved_name`, call `find_coauthors` with:
-- `author` (string): that `resolved_name`
+Call `find_coauthors` with:
+- `author_id` (string): `person.author_id` from Step 1
 - `limit` (integer): 10
-- `exclude_mega_collaborations` (boolean): true
+- `include_mega_collaborations` (boolean): false
 
-Otherwise skip this step and state that no corpus name key was available. The result is a top-N list of coauthor name buckets, not a complete identity-resolved collaboration graph.
+Handle unresolved or degraded results as in Step 1. Rows contain `coauthor`, `coauthor_id`, and `shared_papers`. Display `coauthor` when available, otherwise `coauthor_id`. This is a top-N list of identity-linked collaborators in this corpus, excluding papers with more than 50 authors, not a complete collaboration history.
 
 ## Output Format
 
@@ -72,16 +66,16 @@ Present the results in this structure:
 
 A brief block:
 - **Name**: selected display name
-- **Identity**: ORCID when present; otherwise the returned disambiguation qualification
-- **Institution**: `career_metrics.current_institution.institution` (omit if absent)
-- **h-index**: from identity-provider `career_metrics` (omit if absent)
-- **Papers in corpus**: `summary.total_papers`, labeled with `stats_source`. When `career_metrics.works_count` is present, add the separately sourced upstream works count.
-- **Observed paper activity**: `summary.first_paper` to `summary.last_paper`, labeled as corpus activity with the mixed first-submission/record-date caveat
-- **Primary domains**: top 3 categories from Step 2
+- **Identity**: ORCID when present; otherwise `person.author_id`
+- **Institution**: `career.current_institution.institution` (omit if absent)
+- **h-index**: `career.h_index` (omit if absent)
+- **Papers in corpus**: `corpus.corpus_papers`. When `career.career_works` is present, add the separately scoped whole-career works count and preserve `coverage_note`.
+- **Observed paper activity**: `corpus.first_paper` to `corpus.last_paper`, labeled as corpus activity with the mixed first-submission/record-date caveat
+- **Primary domains**: top 3 entries in `corpus.top_categories`
 
 ### Research Domains
 
-A table of the top 5 categories from Step 2:
+A table of the top 5 entries in `corpus.top_categories`:
 
 | Category | Papers |
 |----------|--------|
@@ -90,7 +84,7 @@ A table of the top 5 categories from Step 2:
 
 ### Top Papers
 
-A numbered list of up to 10 papers from Step 3. State `returned_count`, `disambiguation_status`, citation coverage, and material warnings. For each paper show:
+A numbered list of up to 10 papers from Step 3. State `returned_count`, `status`, citation coverage, and material warnings. For each paper show:
 - [Title](url) (paper ID)
 - Source-aware date label
 - Citations (`citation_count`; omit if null)
@@ -98,7 +92,7 @@ A numbered list of up to 10 papers from Step 3. State `returned_count`, `disambi
 
 ### Top Collaborators
 
-A table of up to 5 coauthor name buckets from Step 4:
+A table of up to 5 collaborators from Step 4:
 
 | Collaborator | Co-authored papers |
 |--------------|-------------------|
