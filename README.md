@@ -1,3 +1,14 @@
+> [!WARNING]
+> **Deprecated.** This repository is archived and no longer updated. Its skills call author tools by names Valency Bond no longer lists. The Valency plugin for Claude Code now lives in [valency-oss/valency-connectors](https://github.com/valency-oss/valency-connectors):
+>
+> ```bash
+> claude plugin marketplace add valency-oss/valency-connectors --scope user &&
+>   claude plugin install valency@valency-claude-plugin --scope user &&
+>   claude mcp login plugin:valency:valency
+> ```
+>
+> If you installed from this repository, remove it first: `claude plugin uninstall valency@valency-plugin` and `claude plugin marketplace remove valency-plugin`.
+
 # Valency — Research Corpus Plugin for Claude Code
 
 The plugin exposes seven skills that turn natural-language questions into structured queries against millions of research papers via the Valency MCP server. Each skill can be triggered by a slash command (e.g. `/valency:profile`) or conversationally.
